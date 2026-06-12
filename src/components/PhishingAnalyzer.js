@@ -1,0 +1,197 @@
+import React, { useState } from 'react';
+import { motion } from 'framer-motion';
+import axios from 'axios';
+import ThreatScore from './ThreatScore';
+import PDFReport from './PDFReport';
+
+const API_URL = 'http://127.0.0.1:5000';
+
+function PhishingAnalyzer({ addToHistory }) {
+  const [emailText, setEmailText] = useState('');
+  const [result, setResult] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  const analyze = async () => {
+    if (!emailText.trim() || emailText.length < 10) {
+      setError('Please enter the email text to analyze.');
+      return;
+    }
+    setLoading(true);
+    setError('');
+    setResult(null);
+
+    try {
+      const response = await axios.post(`${API_URL}/api/analyze-phishing`, {
+        email_text: emailText
+      });
+      setResult(response.data);
+      addToHistory({
+        type: 'Phishing Analysis',
+        score: response.data.combined_threat_score,
+        summary: response.data.is_phishing ? 'Phishing Detected' : 'Clean Email',
+        icon: '🎣'
+      });
+    } catch (err) {
+      setError(err.response?.data?.error || err.message || 'Connection failed: ' + err.toString());
+    }finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div style={{ maxWidth: '900px', margin: '0 auto', padding: '40px 24px' }}>
+      {/* Header */}
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+        <div style={{ marginBottom: '32px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
+            <span style={{ fontSize: '36px' }}>🎣</span>
+            <h1 style={{ fontSize: '32px', fontWeight: 700 }}>Phishing Analyzer</h1>
+          </div>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '16px' }}>
+            Paste any suspicious email. AI will detect phishing tactics, AI-written content and give a threat score.
+          </p>
+        </div>
+
+        {/* Input */}
+        <div className="card" style={{ marginBottom: '24px' }}>
+          <label style={{
+            display: 'block', marginBottom: '12px',
+            fontSize: '14px', fontWeight: 600, color: 'var(--text-secondary)'
+          }}>
+            PASTE EMAIL TEXT
+          </label>
+          <textarea
+            className="input-field"
+            placeholder="Paste the full email content here including subject, sender and body..."
+            value={emailText}
+            onChange={e => setEmailText(e.target.value)}
+            style={{ minHeight: '200px' }}
+          />
+          <div style={{
+            display: 'flex', justifyContent: 'space-between',
+            alignItems: 'center', marginTop: '16px'
+          }}>
+            <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
+              {emailText.length} characters
+            </span>
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <button
+                className="btn-primary"
+                onClick={() => { setEmailText(''); setResult(null); setError(''); }}
+                style={{ background: 'var(--bg-hover)', color: 'var(--text-secondary)' }}
+              >
+                Clear
+              </button>
+              <button
+                className="btn-primary"
+                onClick={analyze}
+                disabled={loading}
+              >
+                {loading ? 'Analyzing...' : '🔍 Analyze Email'}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Error */}
+        {error && (
+          <motion.div
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+            style={{
+              background: 'rgba(255,45,120,0.1)', border: '1px solid rgba(255,45,120,0.3)',
+              borderRadius: '12px', padding: '16px', marginBottom: '24px',
+              color: 'var(--danger)', fontSize: '14px'
+            }}
+          >
+            ⚠️ {error}
+          </motion.div>
+        )}
+
+        {/* Loading */}
+        {loading && (
+          <div style={{ textAlign: 'center', padding: '60px' }}>
+            <div className="loading-spinner" style={{ margin: '0 auto 16px' }}></div>
+            <p style={{ color: 'var(--text-secondary)' }}>AI is analyzing your email...</p>
+          </div>
+        )}
+
+        {/* Results */}
+        {result && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}
+          >
+            {/* Score + verdict */}
+            <div className="card" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-around', flexWrap: 'wrap', gap: '24px' }}>
+              <ThreatScore score={result.combined_threat_score} />
+              <div style={{ flex: 1, minWidth: '200px' }}>
+                <div style={{
+                  fontSize: '28px', fontWeight: 700, marginBottom: '8px',
+                  color: result.is_phishing ? 'var(--danger)' : 'var(--success)'
+                }}>
+                  {result.is_phishing ? '⚠️ PHISHING DETECTED' : '✅ EMAIL IS SAFE'}
+                </div>
+                <p style={{ color: 'var(--text-secondary)', marginBottom: '16px' }}>
+                  {result.explanation}
+                </p>
+                <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+                  <span className={`badge ${result.is_phishing ? 'badge-danger' : 'badge-success'}`}>
+                    {result.is_phishing ? '🚨 Phishing' : '✅ Safe'}
+                  </span>
+                  <span className="badge badge-warning">
+                    🤖 AI Written: {result.ai_written_score}%
+                  </span>
+                  <span className="badge" style={{ background: 'rgba(0,212,255,0.1)', color: 'var(--accent-cyan)', border: '1px solid rgba(0,212,255,0.3)' }}>
+                    🌐 {result.language_detected}
+                  </span>
+                </div>
+                <div style={{ marginTop: '16px' }}>
+  <PDFReport scanData={result} type="Phishing Analysis" />
+</div>
+              </div>
+            </div>
+
+            {/* Dangerous sentences */}
+            {result.dangerous_sentences?.length > 0 && (
+              <div className="card">
+                <h3 style={{ marginBottom: '16px', color: 'var(--danger)' }}>
+                  🚨 Dangerous Sentences
+                </h3>
+                {result.dangerous_sentences.map((sentence, i) => (
+                  <div key={i} style={{
+                    background: 'rgba(255,45,120,0.08)',
+                    border: '1px solid rgba(255,45,120,0.2)',
+                    borderRadius: '8px', padding: '12px 16px', marginBottom: '8px',
+                    fontSize: '14px', color: 'var(--text-primary)', lineHeight: 1.6
+                  }}>
+                    ⚡ {sentence}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Manipulation tactics */}
+            {result.manipulation_tactics?.length > 0 && (
+              <div className="card">
+                <h3 style={{ marginBottom: '16px', color: 'var(--warning)' }}>
+                  🧠 Manipulation Tactics Used
+                </h3>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
+                  {result.manipulation_tactics.map((tactic, i) => (
+                    <span key={i} className="badge badge-warning">
+                      {tactic}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </motion.div>
+        )}
+      </motion.div>
+    </div>
+  );
+}
+
+export default PhishingAnalyzer;
