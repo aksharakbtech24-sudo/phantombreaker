@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import axios from 'axios';
 import PDFReport from './PDFReport';
 
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+const API_URL = 'https://phantombreaker-backend.onrender.com';
 
 function BreachScanner({ addToHistory }) {
   const [email, setEmail] = useState('');
