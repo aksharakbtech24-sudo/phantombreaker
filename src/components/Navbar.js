@@ -29,7 +29,7 @@ function Navbar({ activeModule, setActiveModule }) {
           background: 'var(--gradient-main)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           fontSize: '18px'
-        }}>👻</div>
+        }}></div>
         <span style={{
           fontFamily: 'Space Grotesk', fontWeight: 700, fontSize: '20px',
           background: 'var(--gradient-main)',
