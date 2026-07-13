@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import axios from 'axios';
 import PDFReport from './PDFReport';
 
-const API_URL = 'https://phantombreaker-backend.onrender.com';
+const API_URL = 'https://phantombreaker-backend-xleo.onrender.com';
 
 function BreachScanner({ addToHistory }) {
   const [email, setEmail] = useState('');
