@@ -4,7 +4,18 @@ import axios from 'axios';
 import ThreatScore from './ThreatScore';
 import PDFReport from './PDFReport';
 
-const API_URL = 'https://phantombreaker-backend.onrender.com';
+const API_URL = 'https://phantombreaker-backend-xleo.onrender.com';
+
+function speakAlert(message) {
+  if ('speechSynthesis' in window) {
+    const utterance = new SpeechSynthesisUtterance(message);
+    utterance.rate = 0.9;
+    utterance.pitch = 1;
+    utterance.volume = 1;
+    window.speechSynthesis.speak(utterance);
+  }
+}
+
 function PhishingAnalyzer({ addToHistory }) {
   const [emailText, setEmailText] = useState('');
   const [result, setResult] = useState(null);
@@ -25,6 +36,9 @@ function PhishingAnalyzer({ addToHistory }) {
         email_text: emailText
       });
       setResult(response.data);
+      if (response.data.combined_threat_score >= 70) {
+        speakAlert('Warning! High threat detected. This email is likely a phishing attack.');
+      }
       addToHistory({
         type: 'Phishing Analysis',
         score: response.data.combined_threat_score,
@@ -33,14 +47,13 @@ function PhishingAnalyzer({ addToHistory }) {
       });
     } catch (err) {
       setError(err.response?.data?.error || err.message || 'Connection failed: ' + err.toString());
-    }finally {
+    } finally {
       setLoading(false);
     }
   };
 
   return (
     <div style={{ maxWidth: '900px', margin: '0 auto', padding: '40px 24px' }}>
-      {/* Header */}
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
         <div style={{ marginBottom: '32px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
@@ -52,7 +65,6 @@ function PhishingAnalyzer({ addToHistory }) {
           </p>
         </div>
 
-        {/* Input */}
         <div className="card" style={{ marginBottom: '24px' }}>
           <label style={{
             display: 'block', marginBottom: '12px',
@@ -93,7 +105,6 @@ function PhishingAnalyzer({ addToHistory }) {
           </div>
         </div>
 
-        {/* Error */}
         {error && (
           <motion.div
             initial={{ opacity: 0 }} animate={{ opacity: 1 }}
@@ -107,7 +118,6 @@ function PhishingAnalyzer({ addToHistory }) {
           </motion.div>
         )}
 
-        {/* Loading */}
         {loading && (
           <div style={{ textAlign: 'center', padding: '60px' }}>
             <div className="loading-spinner" style={{ margin: '0 auto 16px' }}></div>
@@ -115,14 +125,12 @@ function PhishingAnalyzer({ addToHistory }) {
           </div>
         )}
 
-        {/* Results */}
         {result && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}
           >
-            {/* Score + verdict */}
             <div className="card" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-around', flexWrap: 'wrap', gap: '24px' }}>
               <ThreatScore score={result.combined_threat_score} />
               <div style={{ flex: 1, minWidth: '200px' }}>
@@ -146,51 +154,6 @@ function PhishingAnalyzer({ addToHistory }) {
                     🌐 {result.language_detected}
                   </span>
                 </div>
-                <div style={{ marginTop: '16px' }}>
-  <PDFReport scanData={result} type="Phishing Analysis" />
-</div>
-              </div>
-            </div>
-
-            {/* Dangerous sentences */}
-            {result.dangerous_sentences?.length > 0 && (
-              <div className="card">
-                <h3 style={{ marginBottom: '16px', color: 'var(--danger)' }}>
-                  🚨 Dangerous Sentences
-                </h3>
-                {result.dangerous_sentences.map((sentence, i) => (
-                  <div key={i} style={{
-                    background: 'rgba(255,45,120,0.08)',
-                    border: '1px solid rgba(255,45,120,0.2)',
-                    borderRadius: '8px', padding: '12px 16px', marginBottom: '8px',
-                    fontSize: '14px', color: 'var(--text-primary)', lineHeight: 1.6
-                  }}>
-                    ⚡ {sentence}
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {/* Manipulation tactics */}
-            {result.manipulation_tactics?.length > 0 && (
-              <div className="card">
-                <h3 style={{ marginBottom: '16px', color: 'var(--warning)' }}>
-                  🧠 Manipulation Tactics Used
-                </h3>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
-                  {result.manipulation_tactics.map((tactic, i) => (
-                    <span key={i} className="badge badge-warning">
-                      {tactic}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-          </motion.div>
-        )}
-      </motion.div>
-    </div>
-  );
-}
-
-export default PhishingAnalyzer;
+                {result.combined_threat_score >= 70 && (
+                  <div style={{
+                    marginTop: '12px',

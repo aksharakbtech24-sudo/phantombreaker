@@ -6,7 +6,9 @@ import ThreatScore from './ThreatScore';
 import PDFReport from './PDFReport';
 
 
-const API_URL = 'https://phantombreaker-backend.onrender.com';
+const API_URL = 'https://phantombreaker-backend-xleo.onrender.com
+
+';
 
 function DeepfakeDetector({ addToHistory }) {
   const [image, setImage] = useState(null);
