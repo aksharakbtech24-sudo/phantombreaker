@@ -36,7 +36,7 @@ function PhishingAnalyzer({ addToHistory }) {
         email_text: emailText
       });
       setResult(response.data);
-      if (response.data.combined_threat_score >= 70) {
+      if (response.data.combined_threat_score >= 60) {
         speakAlert('Warning! High threat detected. This email is likely a phishing attack.');
       }
       addToHistory({
