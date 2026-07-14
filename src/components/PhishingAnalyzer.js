@@ -8,11 +8,14 @@ const API_URL = 'https://phantombreaker-backend-xleo.onrender.com';
 
 function speakAlert(message) {
   if ('speechSynthesis' in window) {
+    window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(message);
     utterance.rate = 0.9;
     utterance.pitch = 1;
     utterance.volume = 1;
-    window.speechSynthesis.speak(utterance);
+    setTimeout(() => {
+      window.speechSynthesis.speak(utterance);
+    }, 500);
   }
 }
 
@@ -21,6 +24,7 @@ function PhishingAnalyzer({ addToHistory }) {
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [voiceTriggered, setVoiceTriggered] = useState(false);
 
   const analyze = async () => {
     if (!emailText.trim() || emailText.length < 10) {
@@ -30,6 +34,7 @@ function PhishingAnalyzer({ addToHistory }) {
     setLoading(true);
     setError('');
     setResult(null);
+    setVoiceTriggered(false);
 
     try {
       const response = await axios.post(`${API_URL}/api/analyze-phishing`, {
@@ -37,7 +42,8 @@ function PhishingAnalyzer({ addToHistory }) {
       });
       setResult(response.data);
       if (response.data.combined_threat_score >= 60) {
-        speakAlert('Warning! High threat detected. This email is likely a phishing attack.');
+        setVoiceTriggered(true);
+        speakAlert('Warning! High threat detected. This email is likely a phishing attack. Do not click any links.');
       }
       addToHistory({
         type: 'Phishing Analysis',
@@ -89,7 +95,7 @@ function PhishingAnalyzer({ addToHistory }) {
             <div style={{ display: 'flex', gap: '12px' }}>
               <button
                 className="btn-primary"
-                onClick={() => { setEmailText(''); setResult(null); setError(''); }}
+                onClick={() => { setEmailText(''); setResult(null); setError(''); setVoiceTriggered(false); }}
                 style={{ background: 'var(--bg-hover)', color: 'var(--text-secondary)' }}
               >
                 Clear
@@ -154,6 +160,58 @@ function PhishingAnalyzer({ addToHistory }) {
                     🌐 {result.language_detected}
                   </span>
                 </div>
-                {result.combined_threat_score >= 70 && (
+                {voiceTriggered && (
                   <div style={{
-                    marginTop: '12px',
+                    marginTop: '12px', padding: '10px 16px',
+                    background: 'rgba(255,45,120,0.1)', border: '1px solid rgba(255,45,120,0.3)',
+                    borderRadius: '8px', fontSize: '13px', color: 'var(--danger)'
+                  }}>
+                    🔊 Voice Alert Triggered — High Threat Detected!
+                  </div>
+                )}
+                <div style={{ marginTop: '16px' }}>
+                  <PDFReport scanData={result} type="Phishing Analysis" />
+                </div>
+              </div>
+            </div>
+
+            {result.dangerous_sentences?.length > 0 && (
+              <div className="card">
+                <h3 style={{ marginBottom: '16px', color: 'var(--danger)' }}>
+                  🚨 Dangerous Sentences
+                </h3>
+                {result.dangerous_sentences.map((sentence, i) => (
+                  <div key={i} style={{
+                    background: 'rgba(255,45,120,0.08)',
+                    border: '1px solid rgba(255,45,120,0.2)',
+                    borderRadius: '8px', padding: '12px 16px', marginBottom: '8px',
+                    fontSize: '14px', color: 'var(--text-primary)', lineHeight: 1.6
+                  }}>
+                    ⚡ {sentence}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {result.manipulation_tactics?.length > 0 && (
+              <div className="card">
+                <h3 style={{ marginBottom: '16px', color: 'var(--warning)' }}>
+                  🧠 Manipulation Tactics Used
+                </h3>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
+                  {result.manipulation_tactics.map((tactic, i) => (
+                    <span key={i} className="badge badge-warning">
+                      {tactic}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </motion.div>
+        )}
+      </motion.div>
+    </div>
+  );
+}
+
+export default PhishingAnalyzer;
