@@ -7,7 +7,7 @@ import PDFReport from './PDFReport';
 
 const API_URL = 'https://phantombreaker-backend-xleo.onrender.com';
 const EMAILJS_SERVICE_ID = 'service_lxa01q6';
-const EMAILJS_TEMPLATE_ID = 'template_lk0ynog';
+const EMAILJS_TEMPLATE_ID = 'template_3ct82po';
 const EMAILJS_PUBLIC_KEY = 'fg77ko_kJNMfhSgeK5LBx';
 
 function speakAlert(message) {
