@@ -40,10 +40,9 @@ function PhishingAnalyzer({ addToHistory }) {
         EMAILJS_TEMPLATE_ID,
         {
           to_email: alertEmail,
-          threat_score: data.combined_threat_score,
-          verdict: data.is_phishing ? 'PHISHING DETECTED' : 'SAFE',
-          language: data.language_detected || 'English',
-          tactics: data.manipulation_tactics?.join(', ') || 'None detected',
+          name: 'PhantomBreaker User',
+          time: new Date().toLocaleString(),
+          message: `⚠️ HIGH THREAT DETECTED!\n\nThreat Score: ${data.combined_threat_score}/100\nVerdict: ${data.is_phishing ? 'PHISHING DETECTED' : 'SAFE'}\nLanguage: ${data.language_detected}\nTactics: ${data.manipulation_tactics?.join(', ') || 'None'}\n\nDO NOT click any links in that suspicious email.\n\nStay safe,\nPhantomBreaker Security Platform\nphantombreaker.vercel.app`,
         },
         EMAILJS_PUBLIC_KEY
       );
