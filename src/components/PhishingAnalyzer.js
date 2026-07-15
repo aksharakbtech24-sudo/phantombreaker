@@ -1,10 +1,14 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import axios from 'axios';
+import emailjs from '@emailjs/browser';
 import ThreatScore from './ThreatScore';
 import PDFReport from './PDFReport';
 
 const API_URL = 'https://phantombreaker-backend-xleo.onrender.com';
+const EMAILJS_SERVICE_ID = 'service_lxa01q6';
+const EMAILJS_TEMPLATE_ID = 'template_lk0ynog';
+const EMAILJS_PUBLIC_KEY = 'fg77ko_kJNMfhSgeK5LBx';
 
 function speakAlert(message) {
   if ('speechSynthesis' in window) {
@@ -21,10 +25,33 @@ function speakAlert(message) {
 
 function PhishingAnalyzer({ addToHistory }) {
   const [emailText, setEmailText] = useState('');
+  const [alertEmail, setAlertEmail] = useState('');
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [voiceTriggered, setVoiceTriggered] = useState(false);
+  const [emailSent, setEmailSent] = useState(false);
+
+  const sendEmailAlert = async (data) => {
+    if (!alertEmail || !alertEmail.includes('@')) return;
+    try {
+      await emailjs.send(
+        EMAILJS_SERVICE_ID,
+        EMAILJS_TEMPLATE_ID,
+        {
+          to_email: alertEmail,
+          threat_score: data.combined_threat_score,
+          verdict: data.is_phishing ? 'PHISHING DETECTED' : 'SAFE',
+          language: data.language_detected || 'English',
+          tactics: data.manipulation_tactics?.join(', ') || 'None detected',
+        },
+        EMAILJS_PUBLIC_KEY
+      );
+      setEmailSent(true);
+    } catch (err) {
+      console.error('Email failed:', err);
+    }
+  };
 
   const analyze = async () => {
     if (!emailText.trim() || emailText.length < 10) {
@@ -35,6 +62,7 @@ function PhishingAnalyzer({ addToHistory }) {
     setError('');
     setResult(null);
     setVoiceTriggered(false);
+    setEmailSent(false);
 
     try {
       const response = await axios.post(`${API_URL}/api/analyze-phishing`, {
@@ -44,6 +72,7 @@ function PhishingAnalyzer({ addToHistory }) {
       if (response.data.combined_threat_score >= 60) {
         setVoiceTriggered(true);
         speakAlert('Warning! High threat detected. This email is likely a phishing attack. Do not click any links.');
+        await sendEmailAlert(response.data);
       }
       addToHistory({
         type: 'Phishing Analysis',
@@ -85,6 +114,24 @@ function PhishingAnalyzer({ addToHistory }) {
             onChange={e => setEmailText(e.target.value)}
             style={{ minHeight: '200px' }}
           />
+
+          <div style={{ marginTop: '16px', marginBottom: '8px' }}>
+            <label style={{
+              display: 'block', marginBottom: '8px',
+              fontSize: '14px', fontWeight: 600, color: 'var(--text-secondary)'
+            }}>
+              📧 YOUR EMAIL (for threat alerts — optional)
+            </label>
+            <input
+              type="email"
+              className="input-field"
+              placeholder="Enter your email to receive alert if threat detected..."
+              value={alertEmail}
+              onChange={e => setAlertEmail(e.target.value)}
+              style={{ padding: '12px 16px', width: '100%', boxSizing: 'border-box' }}
+            />
+          </div>
+
           <div style={{
             display: 'flex', justifyContent: 'space-between',
             alignItems: 'center', marginTop: '16px'
@@ -95,7 +142,7 @@ function PhishingAnalyzer({ addToHistory }) {
             <div style={{ display: 'flex', gap: '12px' }}>
               <button
                 className="btn-primary"
-                onClick={() => { setEmailText(''); setResult(null); setError(''); setVoiceTriggered(false); }}
+                onClick={() => { setEmailText(''); setAlertEmail(''); setResult(null); setError(''); setVoiceTriggered(false); setEmailSent(false); }}
                 style={{ background: 'var(--bg-hover)', color: 'var(--text-secondary)' }}
               >
                 Clear
@@ -167,6 +214,15 @@ function PhishingAnalyzer({ addToHistory }) {
                     borderRadius: '8px', fontSize: '13px', color: 'var(--danger)'
                   }}>
                     🔊 Voice Alert Triggered — High Threat Detected!
+                  </div>
+                )}
+                {emailSent && (
+                  <div style={{
+                    marginTop: '8px', padding: '10px 16px',
+                    background: 'rgba(0,212,255,0.1)', border: '1px solid rgba(0,212,255,0.3)',
+                    borderRadius: '8px', fontSize: '13px', color: 'var(--accent-cyan)'
+                  }}>
+                    📧 Security alert sent to {alertEmail}!
                   </div>
                 )}
                 <div style={{ marginTop: '16px' }}>
