@@ -5,10 +5,7 @@ import axios from 'axios';
 import ThreatScore from './ThreatScore';
 import PDFReport from './PDFReport';
 
-
-const API_URL = 'https://phantombreaker-backend-xleo.onrender.com
-
-';
+const API_URL = 'https://phantombreaker-backend-xleo.onrender.com';
 
 function DeepfakeDetector({ addToHistory }) {
   const [image, setImage] = useState(null);
@@ -56,10 +53,10 @@ function DeepfakeDetector({ addToHistory }) {
         summary: response.data.is_deepfake ? 'Deepfake Detected' : 'Image is Real',
         icon: '🤖'
       });
-      } catch (err) {
-    setError(err.response?.data?.error || 'Analysis failed. Make sure backend is running on port 5000.');
-    console.log(err);
-} finally {
+    } catch (err) {
+      setError(err.response?.data?.error || 'Analysis failed. Make sure backend is running.');
+      console.log(err);
+    } finally {
       setLoading(false);
     }
   };
@@ -74,7 +71,6 @@ function DeepfakeDetector({ addToHistory }) {
   return (
     <div style={{ maxWidth: '900px', margin: '0 auto', padding: '40px 24px' }}>
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-        {/* Header */}
         <div style={{ marginBottom: '32px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
             <span style={{ fontSize: '36px' }}>🤖</span>
@@ -85,7 +81,6 @@ function DeepfakeDetector({ addToHistory }) {
           </p>
         </div>
 
-        {/* Dropzone */}
         <div className="card" style={{ marginBottom: '24px' }}>
           <div
             {...getRootProps()}
@@ -140,7 +135,6 @@ function DeepfakeDetector({ addToHistory }) {
           )}
         </div>
 
-        {/* Error */}
         {error && (
           <motion.div
             initial={{ opacity: 0 }} animate={{ opacity: 1 }}
@@ -154,7 +148,6 @@ function DeepfakeDetector({ addToHistory }) {
           </motion.div>
         )}
 
-        {/* Loading */}
         {loading && (
           <div style={{ textAlign: 'center', padding: '60px' }}>
             <div className="loading-spinner" style={{ margin: '0 auto 16px' }}></div>
@@ -162,7 +155,6 @@ function DeepfakeDetector({ addToHistory }) {
           </div>
         )}
 
-        {/* Results */}
         {result && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -192,12 +184,12 @@ function DeepfakeDetector({ addToHistory }) {
                     Confidence: {result.fake_score}%
                   </span>
                 </div>
+                <div style={{ marginTop: '16px' }}>
+                  <PDFReport scanData={result} type="Deepfake Detection" />
+                </div>
               </div>
             </div>
-<div style={{ marginTop: '16px' }}>
-              <PDFReport scanData={result} type="Deepfake Detection" />
-            </div>
-            {/* What gave it away */}
+
             {result.indicators?.length > 0 && (
               <div className="card">
                 <h3 style={{ marginBottom: '16px', color: 'var(--warning)' }}>
