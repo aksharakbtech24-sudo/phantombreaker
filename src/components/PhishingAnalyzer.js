@@ -42,7 +42,7 @@ function PhishingAnalyzer({ addToHistory }) {
           to_email: alertEmail,
           name: 'PhantomBreaker User',
           time: new Date().toLocaleString(),
-          message: `⚠️ HIGH THREAT DETECTED!\n\nThreat Score: ${data.combined_threat_score}/100\nVerdict: ${data.is_phishing ? 'PHISHING DETECTED' : 'SAFE'}\nLanguage: ${data.language_detected}\nTactics: ${data.manipulation_tactics?.join(', ') || 'None'}\n\nDO NOT click any links in that suspicious email.\n\nStay safe,\nPhantomBreaker Security Platform\nphantombreaker.vercel.app`,
+          message: `PhantomBreaker has completed your email security scan.\n\nThreat Score: ${data.combined_threat_score}/100\nVerdict: ${data.is_phishing ? 'Phishing Detected' : 'Safe'}\nLanguage: ${data.language_detected}\nTactics Found: ${data.manipulation_tactics?.join(', ') || 'None'}\n\nPlease avoid clicking any links in the scanned email if threat was detected.\n\nRegards,\nPhantomBreaker Security Platform\nphantombreaker.vercel.app`,
         },
         EMAILJS_PUBLIC_KEY
       );
@@ -119,12 +119,12 @@ function PhishingAnalyzer({ addToHistory }) {
               display: 'block', marginBottom: '8px',
               fontSize: '14px', fontWeight: 600, color: 'var(--text-secondary)'
             }}>
-              📧 YOUR EMAIL (for threat alerts — optional)
+              📧 YOUR EMAIL (for scan report — optional)
             </label>
             <input
               type="email"
               className="input-field"
-              placeholder="Enter your email to receive alert if threat detected..."
+              placeholder="Enter your email to receive scan report..."
               value={alertEmail}
               onChange={e => setAlertEmail(e.target.value)}
               style={{ padding: '12px 16px', width: '100%', boxSizing: 'border-box' }}
@@ -221,7 +221,7 @@ function PhishingAnalyzer({ addToHistory }) {
                     background: 'rgba(0,212,255,0.1)', border: '1px solid rgba(0,212,255,0.3)',
                     borderRadius: '8px', fontSize: '13px', color: 'var(--accent-cyan)'
                   }}>
-                    📧 Security alert sent to {alertEmail}!
+                    📧 Scan report sent to {alertEmail}!
                   </div>
                 )}
                 <div style={{ marginTop: '16px' }}>
