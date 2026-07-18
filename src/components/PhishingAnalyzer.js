@@ -7,7 +7,7 @@ import ThreatScore from './ThreatScore';
 import PDFReport from './PDFReport';
  
 const API_URL = 'https://phantombreaker-backend-xleo.onrender.com';
-const EMAILJS_SERVICE_ID = 'service_jc94ccd';
+ const EMAILJS_SERVICE_ID = 'service_lxa01q6';
 const EMAILJS_TEMPLATE_ID = 'template_3ct82po';
 const EMAILJS_PUBLIC_KEY = 'xusdSXbfVMIB9_YE7';
  
