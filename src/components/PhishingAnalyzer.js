@@ -1,15 +1,16 @@
+
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import axios from 'axios';
 import emailjs from '@emailjs/browser';
 import ThreatScore from './ThreatScore';
 import PDFReport from './PDFReport';
-
+ 
 const API_URL = 'https://phantombreaker-backend-xleo.onrender.com';
 const EMAILJS_SERVICE_ID = 'service_jc94ccd';
 const EMAILJS_TEMPLATE_ID = 'template_3ct82po';
 const EMAILJS_PUBLIC_KEY = 'xusdSXbfVMIB9_YE7';
-
+ 
 function speakAlert(message) {
   if ('speechSynthesis' in window) {
     window.speechSynthesis.cancel();
@@ -22,7 +23,7 @@ function speakAlert(message) {
     }, 500);
   }
 }
-
+ 
 function PhishingAnalyzer({ addToHistory }) {
   const [emailText, setEmailText] = useState('');
   const [alertEmail, setAlertEmail] = useState('');
@@ -31,7 +32,7 @@ function PhishingAnalyzer({ addToHistory }) {
   const [error, setError] = useState('');
   const [voiceTriggered, setVoiceTriggered] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
-
+ 
   const sendEmailAlert = async (data) => {
     if (!alertEmail || !alertEmail.includes('@')) return;
     try {
@@ -42,7 +43,7 @@ function PhishingAnalyzer({ addToHistory }) {
           to_email: alertEmail,
           name: 'PhantomBreaker User',
           time: new Date().toLocaleString(),
-          message: `PhantomBreaker has completed your email security scan.\n\nThreat Score: ${data.combined_threat_score}/100\nVerdict: ${data.is_phishing ? 'Phishing Detected' : 'Safe'}\nLanguage: ${data.language_detected}\nTactics Found: ${data.manipulation_tactics?.join(', ') || 'None'}\n\nPlease avoid clicking any links in the scanned email if threat was detected.\n\nRegards,\nPhantomBreaker Security Platform\nphantombreaker.vercel.app`,
+          message: `Your PhantomBreaker scan is complete.\n\nThreat Score: ${data.combined_threat_score}/100\nResult: ${data.is_phishing ? 'Phishing Detected' : 'Safe'}\nLanguage: ${data.language_detected}\nTactics Found: ${data.manipulation_tactics?.join(', ') || 'None'}\n\nView full details in your PhantomBreaker dashboard.\n\n— PhantomBreaker Security Platform\nphantombreaker.vercel.app`,
         },
         EMAILJS_PUBLIC_KEY
       );
@@ -51,7 +52,7 @@ function PhishingAnalyzer({ addToHistory }) {
       console.error('Email failed:', err);
     }
   };
-
+ 
   const analyze = async () => {
     if (!emailText.trim() || emailText.length < 10) {
       setError('Please enter the email text to analyze.');
@@ -62,7 +63,7 @@ function PhishingAnalyzer({ addToHistory }) {
     setResult(null);
     setVoiceTriggered(false);
     setEmailSent(false);
-
+ 
     try {
       const response = await axios.post(`${API_URL}/api/analyze-phishing`, {
         email_text: emailText
@@ -85,7 +86,7 @@ function PhishingAnalyzer({ addToHistory }) {
       setLoading(false);
     }
   };
-
+ 
   return (
     <div style={{ maxWidth: '900px', margin: '0 auto', padding: '40px 24px' }}>
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
@@ -98,7 +99,7 @@ function PhishingAnalyzer({ addToHistory }) {
             Paste any suspicious email. AI will detect phishing tactics, AI-written content and give a threat score.
           </p>
         </div>
-
+ 
         <div className="card" style={{ marginBottom: '24px' }}>
           <label style={{
             display: 'block', marginBottom: '12px',
@@ -113,7 +114,7 @@ function PhishingAnalyzer({ addToHistory }) {
             onChange={e => setEmailText(e.target.value)}
             style={{ minHeight: '200px' }}
           />
-
+ 
           <div style={{ marginTop: '16px', marginBottom: '8px' }}>
             <label style={{
               display: 'block', marginBottom: '8px',
@@ -130,7 +131,7 @@ function PhishingAnalyzer({ addToHistory }) {
               style={{ padding: '12px 16px', width: '100%', boxSizing: 'border-box' }}
             />
           </div>
-
+ 
           <div style={{
             display: 'flex', justifyContent: 'space-between',
             alignItems: 'center', marginTop: '16px'
@@ -156,7 +157,7 @@ function PhishingAnalyzer({ addToHistory }) {
             </div>
           </div>
         </div>
-
+ 
         {error && (
           <motion.div
             initial={{ opacity: 0 }} animate={{ opacity: 1 }}
@@ -169,14 +170,14 @@ function PhishingAnalyzer({ addToHistory }) {
             ⚠️ {error}
           </motion.div>
         )}
-
+ 
         {loading && (
           <div style={{ textAlign: 'center', padding: '60px' }}>
             <div className="loading-spinner" style={{ margin: '0 auto 16px' }}></div>
             <p style={{ color: 'var(--text-secondary)' }}>AI is analyzing your email...</p>
           </div>
         )}
-
+ 
         {result && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -229,7 +230,7 @@ function PhishingAnalyzer({ addToHistory }) {
                 </div>
               </div>
             </div>
-
+ 
             {result.dangerous_sentences?.length > 0 && (
               <div className="card">
                 <h3 style={{ marginBottom: '16px', color: 'var(--danger)' }}>
@@ -247,7 +248,7 @@ function PhishingAnalyzer({ addToHistory }) {
                 ))}
               </div>
             )}
-
+ 
             {result.manipulation_tactics?.length > 0 && (
               <div className="card">
                 <h3 style={{ marginBottom: '16px', color: 'var(--warning)' }}>
@@ -268,5 +269,5 @@ function PhishingAnalyzer({ addToHistory }) {
     </div>
   );
 }
-
+ 
 export default PhishingAnalyzer;
