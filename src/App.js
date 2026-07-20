@@ -55,8 +55,6 @@ function App() {
 }
  
 function HomePage({ setActiveModule }) {
-  const [openInfo, setOpenInfo] = useState(null); // holds module id whose "How it works" is expanded
- 
   const modules = [
     {
       id: 'phishing',
@@ -65,14 +63,7 @@ function HomePage({ setActiveModule }) {
       description: 'Detect phishing emails and AI-written content with LLaMA AI. Get threat score, dangerous sentences and manipulation tactics.',
       color: 'var(--accent-cyan)',
       gradient: 'linear-gradient(135deg, rgba(0,212,255,0.1), rgba(123,47,255,0.1))',
-      border: 'rgba(0,212,255,0.3)',
-      howItWorks: [
-        'Paste the full text of a suspicious email into the box.',
-        'Groq\'s LLaMA 3.3 70B model reads it and checks for phishing tactics — urgency, fake links, impersonation, threats.',
-        'Sapling AI separately checks whether the text was AI-written.',
-        'Both scores are combined into one Threat Score (0-100).',
-        'If the score is 60+, a voice alert, an email alert, and a full breakdown of dangerous sentences and tactics are shown.'
-      ]
+      border: 'rgba(0,212,255,0.3)'
     },
     {
       id: 'deepfake',
@@ -81,13 +72,7 @@ function HomePage({ setActiveModule }) {
       description: 'Upload any image and detect if it was AI generated using real computer vision models from HuggingFace.',
       color: 'var(--accent-purple)',
       gradient: 'linear-gradient(135deg, rgba(123,47,255,0.1), rgba(255,45,120,0.1))',
-      border: 'rgba(123,47,255,0.3)',
-      howItWorks: [
-        'Upload any image — a photo, a profile picture, anything you want to check.',
-        'The image is sent to a HuggingFace computer vision model trained to spot AI-generation artifacts.',
-        'The model returns a confidence score for whether the image is real or AI-generated.',
-        'You get a clear verdict plus the confidence percentage behind it.'
-      ]
+      border: 'rgba(123,47,255,0.3)'
     },
     {
       id: 'breach',
@@ -96,19 +81,9 @@ function HomePage({ setActiveModule }) {
       description: 'Check if your email was leaked in any data breach using the real HaveIBeenPwned database with millions of records.',
       color: 'var(--accent-pink)',
       gradient: 'linear-gradient(135deg, rgba(255,45,120,0.1), rgba(255,107,53,0.1))',
-      border: 'rgba(255,45,120,0.3)',
-      howItWorks: [
-        'Enter any email address you want to check.',
-        'It\'s checked against LeakCheck\'s live database of real leaked-record breaches.',
-        'If found, you see which breaches it appeared in, the date, and what data types were exposed (passwords, phone numbers, etc).',
-        'If it\'s clean, you get a clear "no known breaches" result.'
-      ]
+      border: 'rgba(255,45,120,0.3)'
     }
   ];
- 
-  const toggleInfo = (id) => {
-    setOpenInfo(prev => (prev === id ? null : id));
-  };
  
   return (
     <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '60px 24px' }}>
@@ -167,78 +142,26 @@ function HomePage({ setActiveModule }) {
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: i * 0.1 }}
+            onClick={() => setActiveModule(mod.id)}
             style={{
               background: mod.gradient,
               border: `1px solid ${mod.border}`,
               borderRadius: '20px', padding: '32px',
-              transition: 'all 0.3s ease'
+              cursor: 'pointer', transition: 'all 0.3s ease'
             }}
+            whileHover={{ scale: 1.03, y: -5 }}
+            whileTap={{ scale: 0.98 }}
           >
-            <div
-              onClick={() => setActiveModule(mod.id)}
-              style={{ cursor: 'pointer' }}
-            >
-              <div style={{ fontSize: '48px', marginBottom: '16px' }}>{mod.icon}</div>
-              <h3 style={{ fontSize: '20px', fontWeight: 700, marginBottom: '12px', color: mod.color }}>{mod.title}</h3>
-              <p style={{ fontSize: '14px', color: 'var(--text-secondary)', lineHeight: 1.6 }}>{mod.description}</p>
-              <div style={{
-                marginTop: '24px', display: 'flex', alignItems: 'center',
-                gap: '8px', color: mod.color, fontSize: '14px', fontWeight: 600
-              }}>
-                <span>Launch Scanner</span>
-                <span>→</span>
-              </div>
+            <div style={{ fontSize: '48px', marginBottom: '16px' }}>{mod.icon}</div>
+            <h3 style={{ fontSize: '20px', fontWeight: 700, marginBottom: '12px', color: mod.color }}>{mod.title}</h3>
+            <p style={{ fontSize: '14px', color: 'var(--text-secondary)', lineHeight: 1.6 }}>{mod.description}</p>
+            <div style={{
+              marginTop: '24px', display: 'flex', alignItems: 'center',
+              gap: '8px', color: mod.color, fontSize: '14px', fontWeight: 600
+            }}>
+              <span>Launch Scanner</span>
+              <span>→</span>
             </div>
- 
-            {/* How it works toggle — separate click target, doesn't navigate */}
-            <button
-              onClick={(e) => { e.stopPropagation(); toggleInfo(mod.id); }}
-              style={{
-                marginTop: '18px', width: '100%',
-                background: 'rgba(255,255,255,0.04)',
-                border: `1px solid ${mod.border}`,
-                borderRadius: '10px', padding: '10px 14px',
-                color: 'var(--text-secondary)', fontSize: '13px',
-                fontFamily: 'Space Grotesk', fontWeight: 600,
-                cursor: 'pointer', display: 'flex',
-                alignItems: 'center', justifyContent: 'space-between',
-                transition: 'all 0.2s ease'
-              }}
-            >
-              <span>ℹ️ How it works</span>
-              <motion.span
-                animate={{ rotate: openInfo === mod.id ? 180 : 0 }}
-                transition={{ duration: 0.2 }}
-              >
-                ▾
-              </motion.span>
-            </button>
- 
-            <AnimatePresence>
-              {openInfo === mod.id && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: 'auto' }}
-                  exit={{ opacity: 0, height: 0 }}
-                  transition={{ duration: 0.25 }}
-                  style={{ overflow: 'hidden' }}
-                >
-                  <ol style={{
-                    marginTop: '14px', paddingLeft: '20px',
-                    display: 'flex', flexDirection: 'column', gap: '8px'
-                  }}>
-                    {mod.howItWorks.map((step, idx) => (
-                      <li key={idx} style={{
-                        fontSize: '13px', color: 'var(--text-secondary)',
-                        lineHeight: 1.6
-                      }}>
-                        {step}
-                      </li>
-                    ))}
-                  </ol>
-                </motion.div>
-              )}
-            </AnimatePresence>
           </motion.div>
         ))}
       </div>
