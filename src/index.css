@@ -270,3 +270,28 @@ textarea.input-field {
   background: var(--gradient-main);
   transition: width 1s ease;
 }
+.pb-navbar {
+  gap: 12px;
+}
+
+.pb-nav-links {
+  scrollbar-width: none;
+}
+.pb-nav-links::-webkit-scrollbar {
+  display: none;
+}
+
+@media (max-width: 640px) {
+  .pb-navbar {
+    padding: 0 12px !important;
+  }
+  .pb-logo-text {
+    display: none;
+  }
+  .pb-status {
+    display: none;
+  }
+  .pb-nav-links {
+    max-width: 70vw;
+  }
+}
