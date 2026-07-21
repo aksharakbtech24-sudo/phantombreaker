@@ -1,311 +1,332 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import jsPDF from 'jspdf';
-
-function PDFReport({ scanData, type }) {
-  const generatePDF = () => {
-    const doc = new jsPDF();
-    const pageWidth = doc.internal.pageSize.getWidth();
-
-    // Background
-    doc.setFillColor(10, 10, 15);
-    doc.rect(0, 0, pageWidth, 297, 'F');
-
-    // Header bar
-    doc.setFillColor(0, 212, 255);
-    doc.rect(0, 0, pageWidth, 2, 'F');
-
-    // Logo area
-    doc.setFillColor(19, 19, 31);
-    doc.roundedRect(14, 10, pageWidth - 28, 30, 3, 3, 'F');
-
-    // Title
-    doc.setTextColor(0, 212, 255);
-    doc.setFontSize(22);
-    doc.setFont('helvetica', 'bold');
-    doc.text('PhantomBreaker', 20, 28);
-
-    doc.setTextColor(136, 146, 164);
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'normal');
-    doc.text('AI-Powered Cybersecurity Platform', 20, 36);
-
-    // Report type badge
-    doc.setFillColor(0, 212, 255);
-    doc.roundedRect(pageWidth - 70, 14, 56, 18, 3, 3, 'F');
-    doc.setTextColor(10, 10, 15);
-    doc.setFontSize(9);
-    doc.setFont('helvetica', 'bold');
-    doc.text('SECURITY REPORT', pageWidth - 67, 25);
-
-    // Date
-    doc.setTextColor(136, 146, 164);
-    doc.setFontSize(9);
-    doc.setFont('helvetica', 'normal');
-    doc.text(`Generated: ${new Date().toLocaleString()}`, 20, 50);
-    doc.text(`Report Type: ${type}`, 20, 57);
-
-    // Divider
-    doc.setDrawColor(30, 32, 48);
-    doc.line(14, 62, pageWidth - 14, 62);
-
-    // Threat Score Section
-    doc.setFillColor(19, 19, 31);
-    doc.roundedRect(14, 68, pageWidth - 28, 40, 3, 3, 'F');
-
-    const score = scanData?.combined_threat_score ||
-      scanData?.fake_score ||
-      (scanData?.breach_count > 0 ? Math.min(scanData.breach_count * 15, 100) : 0);
-
-    const scoreColor = score >= 70 ? [255, 45, 120] :
-      score >= 40 ? [255, 179, 71] : [0, 255, 136];
-
-    doc.setTextColor(...scoreColor);
-    doc.setFontSize(36);
-    doc.setFont('helvetica', 'bold');
-    doc.text(`${score}/100`, 20, 98);
-
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(14);
-    doc.text('THREAT SCORE', 70, 82);
-
-    const verdict = score >= 70 ? '⚠ HIGH THREAT DETECTED' :
-      score >= 40 ? '⚡ MEDIUM RISK' : '✓ LOW RISK - SAFE';
-
-    doc.setTextColor(...scoreColor);
-    doc.setFontSize(12);
-    doc.text(verdict, 70, 95);
-
-    doc.setTextColor(136, 146, 164);
-    doc.setFontSize(9);
-    doc.text(
-      score >= 70 ? 'Immediate action required' :
-        score >= 40 ? 'Review recommended' : 'No immediate action needed',
-      70, 104
-    );
-
-    let yPos = 118;
-
-    // Phishing specific
-    if (type === 'Phishing Analysis' && scanData) {
-      // Verdict
-      doc.setFillColor(19, 19, 31);
-      doc.roundedRect(14, yPos, pageWidth - 28, 28, 3, 3, 'F');
-      doc.setTextColor(0, 212, 255);
-      doc.setFontSize(11);
-      doc.setFont('helvetica', 'bold');
-      doc.text('ANALYSIS VERDICT', 20, yPos + 10);
-      doc.setTextColor(255, 255, 255);
-      doc.setFontSize(10);
-      doc.setFont('helvetica', 'normal');
-      doc.text(scanData.is_phishing ? '⚠ PHISHING DETECTED' : '✓ EMAIL IS SAFE', 20, yPos + 20);
-      doc.setTextColor(136, 146, 164);
-      doc.setFontSize(9);
-      doc.text(`AI Written Score: ${scanData.ai_written_score}%  |  Language: ${scanData.language_detected}`, pageWidth - 14, yPos + 20, { align: 'right' });
-      yPos += 36;
-
-      // Explanation
-      if (scanData.explanation) {
-        doc.setFillColor(19, 19, 31);
-        doc.roundedRect(14, yPos, pageWidth - 28, 24, 3, 3, 'F');
-        doc.setTextColor(0, 212, 255);
-        doc.setFontSize(10);
-        doc.setFont('helvetica', 'bold');
-        doc.text('EXPLANATION', 20, yPos + 10);
-        doc.setTextColor(200, 200, 200);
-        doc.setFontSize(9);
-        doc.setFont('helvetica', 'normal');
-        const lines = doc.splitTextToSize(scanData.explanation, pageWidth - 40);
-        doc.text(lines[0], 20, yPos + 18);
-        yPos += 32;
-      }
-
-      // Dangerous sentences
-      if (scanData.dangerous_sentences?.length > 0) {
-        doc.setFillColor(40, 10, 20);
-        doc.roundedRect(14, yPos, pageWidth - 28, 12 + scanData.dangerous_sentences.length * 14, 3, 3, 'F');
-        doc.setDrawColor(255, 45, 120);
-        doc.roundedRect(14, yPos, pageWidth - 28, 12 + scanData.dangerous_sentences.length * 14, 3, 3, 'S');
-        doc.setTextColor(255, 45, 120);
-        doc.setFontSize(10);
-        doc.setFont('helvetica', 'bold');
-        doc.text('DANGEROUS SENTENCES', 20, yPos + 10);
-        yPos += 16;
-        scanData.dangerous_sentences.forEach(sentence => {
-          doc.setTextColor(220, 220, 220);
-          doc.setFontSize(9);
-          doc.setFont('helvetica', 'normal');
-          const lines = doc.splitTextToSize(`• ${sentence}`, pageWidth - 44);
-          doc.text(lines[0], 22, yPos);
-          yPos += 14;
-        });
-        yPos += 8;
-      }
-
-      // Manipulation tactics
-      if (scanData.manipulation_tactics?.length > 0) {
-        doc.setFillColor(19, 19, 31);
-        doc.roundedRect(14, yPos, pageWidth - 28, 12 + Math.ceil(scanData.manipulation_tactics.length / 2) * 12, 3, 3, 'F');
-        doc.setTextColor(255, 179, 71);
-        doc.setFontSize(10);
-        doc.setFont('helvetica', 'bold');
-        doc.text('MANIPULATION TACTICS', 20, yPos + 10);
-        yPos += 16;
-        scanData.manipulation_tactics.forEach((tactic, i) => {
-          doc.setTextColor(220, 220, 220);
-          doc.setFontSize(9);
-          doc.setFont('helvetica', 'normal');
-          if (i % 2 === 0) {
-            doc.text(`• ${tactic}`, 22, yPos);
-          } else {
-            doc.text(`• ${tactic}`, pageWidth / 2, yPos);
-            yPos += 12;
-          }
-        });
-        yPos += 16;
-      }
-    }
-
-    // Deepfake specific
-    if (type === 'Deepfake Detection' && scanData) {
-      doc.setFillColor(19, 19, 31);
-      doc.roundedRect(14, yPos, pageWidth - 28, 28, 3, 3, 'F');
-      doc.setTextColor(0, 212, 255);
-      doc.setFontSize(11);
-      doc.setFont('helvetica', 'bold');
-      doc.text('DETECTION RESULT', 20, yPos + 10);
-      doc.setTextColor(255, 255, 255);
-      doc.setFontSize(10);
-      doc.setFont('helvetica', 'normal');
-      doc.text(scanData.is_deepfake ? '⚠ DEEPFAKE DETECTED' : '✓ IMAGE IS REAL', 20, yPos + 20);
-      doc.setTextColor(136, 146, 164);
-      doc.text(`Confidence: ${scanData.fake_score}%`, pageWidth - 14, yPos + 20, { align: 'right' });
-      yPos += 36;
-
-      if (scanData.explanation) {
-        doc.setFillColor(19, 19, 31);
-        doc.roundedRect(14, yPos, pageWidth - 28, 24, 3, 3, 'F');
-        doc.setTextColor(0, 212, 255);
-        doc.setFontSize(10);
-        doc.setFont('helvetica', 'bold');
-        doc.text('EXPLANATION', 20, yPos + 10);
-        doc.setTextColor(200, 200, 200);
-        doc.setFontSize(9);
-        doc.setFont('helvetica', 'normal');
-        doc.text(scanData.explanation, 20, yPos + 18);
-        yPos += 32;
-      }
-
-      if (scanData.indicators?.length > 0) {
-        doc.setFillColor(19, 19, 31);
-        doc.roundedRect(14, yPos, pageWidth - 28, 12 + scanData.indicators.length * 14, 3, 3, 'F');
-        doc.setTextColor(255, 179, 71);
-        doc.setFontSize(10);
-        doc.setFont('helvetica', 'bold');
-        doc.text('INDICATORS', 20, yPos + 10);
-        yPos += 16;
-        scanData.indicators.forEach(ind => {
-          doc.setTextColor(220, 220, 220);
-          doc.setFontSize(9);
-          doc.setFont('helvetica', 'normal');
-          doc.text(`• ${ind}`, 22, yPos);
-          yPos += 14;
-        });
-      }
-    }
-
-    // Breach specific
-    if (type === 'Breach Scan' && scanData) {
-      doc.setFillColor(19, 19, 31);
-      doc.roundedRect(14, yPos, pageWidth - 28, 28, 3, 3, 'F');
-      doc.setTextColor(0, 212, 255);
-      doc.setFontSize(11);
-      doc.setFont('helvetica', 'bold');
-      doc.text('BREACH SUMMARY', 20, yPos + 10);
-      doc.setTextColor(255, 255, 255);
-      doc.setFontSize(10);
-      doc.setFont('helvetica', 'normal');
-      doc.text(
-        scanData.breach_count > 0
-          ? `Found in ${scanData.breach_count} data breaches`
-          : '✓ No breaches found',
-        20, yPos + 20
+import axios from 'axios';
+import emailjs from '@emailjs/browser';
+import ThreatScore from './ThreatScore';
+import PDFReport from './PDFReport';
+import { useLanguage } from '../LanguageContext';
+import { useTranslated } from '../useTranslated';
+import { speechLangCode } from '../speechLangCodes';
+ 
+const API_URL = 'https://phantombreaker-backend-xleo.onrender.com';
+const EMAILJS_SERVICE_ID = 'service_lxa01q6';
+const EMAILJS_TEMPLATE_ID = 'template_3ct82po';
+const EMAILJS_PUBLIC_KEY = 'xusdSXbfVMIB9_YE7';
+ 
+function speakAlert(message, langCode, fallbackMessage) {
+  if ('speechSynthesis' in window) {
+    window.speechSynthesis.cancel();
+ 
+    const speak = () => {
+      const voices = window.speechSynthesis.getVoices();
+      // Check if any installed voice actually matches the target language
+      // (matching just the language prefix, e.g. "te" for "te-IN", since
+      // exact locale matches are rare — browsers often have "te" but not "te-IN").
+      const langPrefix = langCode.split('-')[0];
+      const hasMatchingVoice = voices.some(v => v.lang.toLowerCase().startsWith(langPrefix));
+ 
+      const utterance = new SpeechSynthesisUtterance(
+        hasMatchingVoice ? message : (fallbackMessage || message)
       );
-      yPos += 36;
-
-      if (scanData.breaches?.length > 0) {
-        scanData.breaches.slice(0, 8).forEach(breach => {
-          if (yPos > 260) return;
-          doc.setFillColor(19, 19, 31);
-          doc.roundedRect(14, yPos, pageWidth - 28, 22, 2, 2, 'F');
-          doc.setTextColor(255, 255, 255);
-          doc.setFontSize(10);
-          doc.setFont('helvetica', 'bold');
-          doc.text(breach.name, 20, yPos + 9);
-          doc.setTextColor(136, 146, 164);
-          doc.setFontSize(8);
-          doc.setFont('helvetica', 'normal');
-          doc.text(`Date: ${breach.breach_date}`, 20, yPos + 17);
-          if (breach.data_classes?.length > 0) {
-            doc.text(`Data: ${breach.data_classes.slice(0, 4).join(', ')}`, 80, yPos + 17);
-          }
-          yPos += 26;
-        });
-      }
+      utterance.lang = hasMatchingVoice ? langCode : 'en-IN';
+      utterance.rate = 0.9;
+      utterance.pitch = 1;
+      utterance.volume = 1;
+      window.speechSynthesis.speak(utterance);
+    };
+ 
+    // Voice list loads asynchronously in some browsers — if empty on first
+    // check, wait for it to populate before deciding on fallback.
+    if (window.speechSynthesis.getVoices().length === 0) {
+      window.speechSynthesis.onvoiceschanged = () => {
+        setTimeout(speak, 300);
+      };
+    } else {
+      setTimeout(speak, 500);
     }
-
-    // Recommendations
-    if (yPos < 230) {
-      yPos += 10;
-      doc.setFillColor(10, 25, 20);
-      doc.roundedRect(14, yPos, pageWidth - 28, 48, 3, 3, 'F');
-      doc.setDrawColor(0, 255, 136);
-      doc.roundedRect(14, yPos, pageWidth - 28, 48, 3, 3, 'S');
-      doc.setTextColor(0, 255, 136);
-      doc.setFontSize(10);
-      doc.setFont('helvetica', 'bold');
-      doc.text('RECOMMENDATIONS', 20, yPos + 10);
-      const recs = score >= 70
-        ? ['Change all passwords immediately', 'Enable 2FA on all accounts', 'Report to cybercrime.gov.in']
-        : score >= 40
-          ? ['Review flagged content carefully', 'Update passwords as precaution', 'Stay vigilant online']
-          : ['Keep software updated', 'Use strong unique passwords', 'Enable 2FA everywhere'];
-      recs.forEach((rec, i) => {
-        doc.setTextColor(200, 220, 200);
-        doc.setFontSize(9);
-        doc.setFont('helvetica', 'normal');
-        doc.text(`${i + 1}. ${rec}`, 20, yPos + 22 + i * 10);
-      });
-      yPos += 56;
+  }
+}
+ 
+// Every static English UI string on this page, translated together in one batch.
+const UI_STRINGS = {
+  title: 'Phishing Analyzer',
+  subtitle: 'Paste any suspicious email. AI will detect phishing tactics, AI-written content and give a threat score.',
+  pasteLabel: 'PASTE EMAIL TEXT',
+  pastePlaceholder: 'Paste the full email content here including subject, sender and body...',
+  emailLabel: '📧 YOUR EMAIL (for scan report — optional)',
+  emailPlaceholder: 'Enter your email to receive scan report...',
+  clear: 'Clear',
+  analyze: '🔍 Analyze Email',
+  analyzing: 'Analyzing...',
+  analyzingBody: 'AI is analyzing your email...',
+  charCount: 'characters',
+  emptyError: 'Please enter the email text to analyze.',
+  phishingDetected: '⚠️ PHISHING DETECTED',
+  emailSafe: '✅ EMAIL IS SAFE',
+  phishingBadge: '🚨 Phishing',
+  safeBadge: '✅ Safe',
+  aiWritten: '🤖 AI Written:',
+  voiceAlert: '🔊 Voice Alert Triggered — High Threat Detected!',
+  reportSentPrefix: '📧 Scan report sent to',
+  dangerousSentences: '🚨 Dangerous Sentences',
+  manipulationTactics: '🧠 Manipulation Tactics Used',
+  voiceAlertMessage: 'Warning! High threat detected. This email is likely a phishing attack. Do not click any links.',
+};
+ 
+function PhishingAnalyzer({ addToHistory }) {
+  const { language } = useLanguage(); // currently selected site language, e.g. "Telugu"
+  const { t } = useTranslated(Object.values(UI_STRINGS));
+ 
+  const [emailText, setEmailText] = useState('');
+  const [alertEmail, setAlertEmail] = useState('');
+  const [result, setResult] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [voiceTriggered, setVoiceTriggered] = useState(false);
+  const [emailSent, setEmailSent] = useState(false);
+ 
+  const sendEmailAlert = async (data) => {
+    if (!alertEmail || !alertEmail.includes('@')) return;
+    try {
+      await emailjs.send(
+        EMAILJS_SERVICE_ID,
+        EMAILJS_TEMPLATE_ID,
+        {
+          to_email: alertEmail,
+          name: 'PhantomBreaker User',
+          time: new Date().toLocaleString(),
+          message: `Your PhantomBreaker scan is complete.\n\nThreat Score: ${data.combined_threat_score}/100\nResult: ${data.is_phishing ? 'Phishing Detected' : 'Safe'}\nLanguage: ${data.language_detected}\nTactics Found: ${data.manipulation_tactics?.join(', ') || 'None'}\n\nView full details in your PhantomBreaker dashboard.\n\n— PhantomBreaker Security Platform\nphantombreaker.vercel.app`,
+        },
+        EMAILJS_PUBLIC_KEY
+      );
+      setEmailSent(true);
+    } catch (err) {
+      console.error('Email failed:', err);
     }
-
-    // Footer
-    doc.setFillColor(19, 19, 31);
-    doc.rect(0, 280, pageWidth, 17, 'F');
-    doc.setFillColor(0, 212, 255);
-    doc.rect(0, 295, pageWidth, 2, 'F');
-    doc.setTextColor(136, 146, 164);
-    doc.setFontSize(8);
-    doc.text('PhantomBreaker — AI Cybersecurity Platform', 14, 290);
-    doc.text('phantombreaker.vercel.app', pageWidth - 14, 290, { align: 'right' });
-
-    doc.save(`PhantomBreaker_${type.replace(/\s/g, '_')}_${Date.now()}.pdf`);
   };
-
+ 
+  const analyze = async () => {
+    if (!emailText.trim() || emailText.length < 10) {
+      setError(t(UI_STRINGS.emptyError));
+      return;
+    }
+    setLoading(true);
+    setError('');
+    setResult(null);
+    setVoiceTriggered(false);
+    setEmailSent(false);
+ 
+    try {
+      const response = await axios.post(`${API_URL}/api/analyze-phishing`, {
+        email_text: emailText,
+        response_language: language, // ensures result follows the selected site language
+      });
+      setResult(response.data);
+      if (response.data.combined_threat_score >= 60) {
+        setVoiceTriggered(true);
+        // Voice alert spoken in the selected site language if a matching voice
+        // exists on the device; otherwise falls back to English automatically
+        speakAlert(
+          t(UI_STRINGS.voiceAlertMessage),
+          speechLangCode(language),
+          UI_STRINGS.voiceAlertMessage // English fallback text
+        );
+        await sendEmailAlert(response.data);
+      }
+      addToHistory({
+        type: 'Phishing Analysis',
+        score: response.data.combined_threat_score,
+        summary: response.data.is_phishing ? 'Phishing Detected' : 'Clean Email',
+        icon: '🎣'
+      });
+    } catch (err) {
+      setError(err.response?.data?.error || err.message || 'Connection failed: ' + err.toString());
+    } finally {
+      setLoading(false);
+    }
+  };
+ 
   return (
-    <motion.button
-      className="btn-primary"
-      onClick={generatePDF}
-      whileHover={{ scale: 1.05 }}
-      whileTap={{ scale: 0.95 }}
-      style={{
-        display: 'flex', alignItems: 'center', gap: '8px',
-        background: 'linear-gradient(135deg, #00ff88, #00d4ff)'
-      }}
-    >
-      📄 Download PDF Report
-    </motion.button>
+    <div style={{ maxWidth: '900px', margin: '0 auto', padding: '40px 24px' }}>
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+        <div style={{ marginBottom: '32px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
+            <span style={{ fontSize: '36px' }}>🎣</span>
+            <h1 style={{ fontSize: '32px', fontWeight: 700 }}>{t(UI_STRINGS.title)}</h1>
+          </div>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '16px' }}>
+            {t(UI_STRINGS.subtitle)}
+          </p>
+        </div>
+ 
+        <div className="card" style={{ marginBottom: '24px' }}>
+          <label style={{
+            display: 'block', marginBottom: '12px',
+            fontSize: '14px', fontWeight: 600, color: 'var(--text-secondary)'
+          }}>
+            {t(UI_STRINGS.pasteLabel)}
+          </label>
+          <textarea
+            className="input-field"
+            placeholder={t(UI_STRINGS.pastePlaceholder)}
+            value={emailText}
+            onChange={e => setEmailText(e.target.value)}
+            style={{ minHeight: '200px' }}
+          />
+ 
+          <div style={{ marginTop: '16px', marginBottom: '8px' }}>
+            <label style={{
+              display: 'block', marginBottom: '8px',
+              fontSize: '14px', fontWeight: 600, color: 'var(--text-secondary)'
+            }}>
+              {t(UI_STRINGS.emailLabel)}
+            </label>
+            <input
+              type="email"
+              className="input-field"
+              placeholder={t(UI_STRINGS.emailPlaceholder)}
+              value={alertEmail}
+              onChange={e => setAlertEmail(e.target.value)}
+              style={{ padding: '12px 16px', width: '100%', boxSizing: 'border-box' }}
+            />
+          </div>
+ 
+          <div style={{
+            display: 'flex', justifyContent: 'space-between',
+            alignItems: 'center', marginTop: '16px'
+          }}>
+            <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
+              {emailText.length} {t(UI_STRINGS.charCount)}
+            </span>
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <button
+                className="btn-primary"
+                onClick={() => { setEmailText(''); setAlertEmail(''); setResult(null); setError(''); setVoiceTriggered(false); setEmailSent(false); }}
+                style={{ background: 'var(--bg-hover)', color: 'var(--text-secondary)' }}
+              >
+                {t(UI_STRINGS.clear)}
+              </button>
+              <button
+                className="btn-primary"
+                onClick={analyze}
+                disabled={loading}
+              >
+                {loading ? t(UI_STRINGS.analyzing) : t(UI_STRINGS.analyze)}
+              </button>
+            </div>
+          </div>
+        </div>
+ 
+        {error && (
+          <motion.div
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+            style={{
+              background: 'rgba(255,45,120,0.1)', border: '1px solid rgba(255,45,120,0.3)',
+              borderRadius: '12px', padding: '16px', marginBottom: '24px',
+              color: 'var(--danger)', fontSize: '14px'
+            }}
+          >
+            ⚠️ {error}
+          </motion.div>
+        )}
+ 
+        {loading && (
+          <div style={{ textAlign: 'center', padding: '60px' }}>
+            <div className="loading-spinner" style={{ margin: '0 auto 16px' }}></div>
+            <p style={{ color: 'var(--text-secondary)' }}>{t(UI_STRINGS.analyzingBody)}</p>
+          </div>
+        )}
+ 
+        {result && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}
+          >
+            <div className="card" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-around', flexWrap: 'wrap', gap: '24px' }}>
+              <ThreatScore score={result.combined_threat_score} />
+              <div style={{ flex: 1, minWidth: '200px' }}>
+                <div style={{
+                  fontSize: '28px', fontWeight: 700, marginBottom: '8px',
+                  color: result.is_phishing ? 'var(--danger)' : 'var(--success)'
+                }}>
+                  {result.is_phishing ? t(UI_STRINGS.phishingDetected) : t(UI_STRINGS.emailSafe)}
+                </div>
+                <p style={{ color: 'var(--text-secondary)', marginBottom: '16px' }}>
+                  {result.explanation}
+                </p>
+                <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+                  <span className={`badge ${result.is_phishing ? 'badge-danger' : 'badge-success'}`}>
+                    {result.is_phishing ? t(UI_STRINGS.phishingBadge) : t(UI_STRINGS.safeBadge)}
+                  </span>
+                  <span className="badge badge-warning">
+                    {t(UI_STRINGS.aiWritten)} {result.ai_written_score}%
+                  </span>
+                  <span className="badge" style={{ background: 'rgba(0,212,255,0.1)', color: 'var(--accent-cyan)', border: '1px solid rgba(0,212,255,0.3)' }}>
+                    🌐 {result.language_detected}
+                  </span>
+                </div>
+                {voiceTriggered && (
+                  <div style={{
+                    marginTop: '12px', padding: '10px 16px',
+                    background: 'rgba(255,45,120,0.1)', border: '1px solid rgba(255,45,120,0.3)',
+                    borderRadius: '8px', fontSize: '13px', color: 'var(--danger)'
+                  }}>
+                    {t(UI_STRINGS.voiceAlert)}
+                  </div>
+                )}
+                {emailSent && (
+                  <div style={{
+                    marginTop: '8px', padding: '10px 16px',
+                    background: 'rgba(0,212,255,0.1)', border: '1px solid rgba(0,212,255,0.3)',
+                    borderRadius: '8px', fontSize: '13px', color: 'var(--accent-cyan)'
+                  }}>
+                    {t(UI_STRINGS.reportSentPrefix)} {alertEmail}!
+                  </div>
+                )}
+                <div style={{ marginTop: '16px' }}>
+                  <PDFReport scanData={result} type="Phishing Analysis" />
+                </div>
+              </div>
+            </div>
+ 
+            {result.dangerous_sentences?.length > 0 && (
+              <div className="card">
+                <h3 style={{ marginBottom: '16px', color: 'var(--danger)' }}>
+                  {t(UI_STRINGS.dangerousSentences)}
+                </h3>
+                {result.dangerous_sentences.map((sentence, i) => (
+                  <div key={i} style={{
+                    background: 'rgba(255,45,120,0.08)',
+                    border: '1px solid rgba(255,45,120,0.2)',
+                    borderRadius: '8px', padding: '12px 16px', marginBottom: '8px',
+                    fontSize: '14px', color: 'var(--text-primary)', lineHeight: 1.6
+                  }}>
+                    ⚡ {sentence}
+                  </div>
+                ))}
+              </div>
+            )}
+ 
+            {result.manipulation_tactics?.length > 0 && (
+              <div className="card">
+                <h3 style={{ marginBottom: '16px', color: 'var(--warning)' }}>
+                  {t(UI_STRINGS.manipulationTactics)}
+                </h3>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
+                  {result.manipulation_tactics.map((tactic, i) => (
+                    <span key={i} className="badge badge-warning">
+                      {tactic}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </motion.div>
+        )}
+      </motion.div>
+    </div>
   );
 }
-
-export default PDFReport;
+ 
+export default PhishingAnalyzer;
