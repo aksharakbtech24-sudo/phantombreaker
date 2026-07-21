@@ -6,16 +6,18 @@ import ThreatScore from './ThreatScore';
 import PDFReport from './PDFReport';
 import { useLanguage } from '../LanguageContext';
 import { useTranslated } from '../useTranslated';
+import { speechLangCode } from '../speechLangCodes';
  
 const API_URL = 'https://phantombreaker-backend-xleo.onrender.com';
 const EMAILJS_SERVICE_ID = 'service_lxa01q6';
 const EMAILJS_TEMPLATE_ID = 'template_3ct82po';
 const EMAILJS_PUBLIC_KEY = 'xusdSXbfVMIB9_YE7';
  
-function speakAlert(message) {
+function speakAlert(message, langCode) {
   if ('speechSynthesis' in window) {
     window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(message);
+    utterance.lang = langCode;
     utterance.rate = 0.9;
     utterance.pitch = 1;
     utterance.volume = 1;
@@ -48,6 +50,7 @@ const UI_STRINGS = {
   reportSentPrefix: '📧 Scan report sent to',
   dangerousSentences: '🚨 Dangerous Sentences',
   manipulationTactics: '🧠 Manipulation Tactics Used',
+  voiceAlertMessage: 'Warning! High threat detected. This email is likely a phishing attack. Do not click any links.',
 };
  
 function PhishingAnalyzer({ addToHistory }) {
@@ -101,7 +104,8 @@ function PhishingAnalyzer({ addToHistory }) {
       setResult(response.data);
       if (response.data.combined_threat_score >= 60) {
         setVoiceTriggered(true);
-        speakAlert('Warning! High threat detected. This email is likely a phishing attack. Do not click any links.');
+        // Voice alert spoken in the selected site language, with the matching voice locale
+        speakAlert(t(UI_STRINGS.voiceAlertMessage), speechLangCode(language));
         await sendEmailAlert(response.data);
       }
       addToHistory({

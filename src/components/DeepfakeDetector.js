@@ -240,4 +240,3 @@ function DeepfakeDetector({ addToHistory }) {
 }
  
 export default DeepfakeDetector;
- 
