@@ -82,7 +82,7 @@ function HomePage({ setActiveModule }) {
       id: 'breach',
       icon: '🔓',
       title: 'Breach Scanner',
-      description: 'Check if your email was leaked in any data breach using the real HaveIBeenPwned database with millions of records.',
+    description: 'Check if your email was leaked in any data breach using the real LeakCheck database with millions of records.',
       color: 'var(--accent-pink)',
       gradient: 'linear-gradient(135deg, rgba(255,45,120,0.1), rgba(255,107,53,0.1))',
       border: 'rgba(255,45,120,0.3)'
