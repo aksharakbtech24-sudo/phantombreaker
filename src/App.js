@@ -5,6 +5,8 @@ import PhishingAnalyzer from './components/PhishingAnalyzer';
 import DeepfakeDetector from './components/DeepfakeDetector';
 import BreachScanner from './components/BreachScanner';
 import ScanHistory from './components/ScanHistory';
+import { LanguageProvider } from './LanguageContext';
+import { useTranslated } from './useTranslated';
 import './index.css';
  
 function App() {
@@ -35,22 +37,24 @@ function App() {
   };
  
   return (
-    <div className="app">
-      <Navbar activeModule={activeModule} setActiveModule={setActiveModule} />
-      <main style={{ paddingTop: '80px', minHeight: '100vh' }}>
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={activeModule}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.3 }}
-          >
-            {renderModule()}
-          </motion.div>
-        </AnimatePresence>
-      </main>
-    </div>
+    <LanguageProvider>
+      <div className="app">
+        <Navbar activeModule={activeModule} setActiveModule={setActiveModule} />
+        <main style={{ paddingTop: '80px', minHeight: '100vh' }}>
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={activeModule}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.3 }}
+            >
+              {renderModule()}
+            </motion.div>
+          </AnimatePresence>
+        </main>
+      </div>
+    </LanguageProvider>
   );
 }
  
@@ -85,6 +89,22 @@ function HomePage({ setActiveModule }) {
     }
   ];
  
+  // Every English string shown on this page — the hook translates all of
+  // these together in one batch call whenever the language changes.
+  const tagline = 'Protect yourself from AI misuse. Detect phishing, deepfakes and data breaches with real AI models and live databases.';
+  const badge = 'AI-Powered Cybersecurity Platform';
+  const tags = ['Real AI Models', 'Live Databases', 'Multilingual', 'Threat Reports'];
+  const launchLabel = 'Launch Scanner';
+ 
+  const englishStrings = [
+    badge, tagline, launchLabel,
+    ...tags,
+    ...modules.map(m => m.title),
+    ...modules.map(m => m.description),
+  ];
+ 
+  const { t } = useTranslated(englishStrings);
+ 
   return (
     <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '60px 24px' }}>
       {/* Hero */}
@@ -100,7 +120,7 @@ function HomePage({ setActiveModule }) {
           borderRadius: '20px', padding: '6px 16px', marginBottom: '24px'
         }}>
           <span style={{ width: '8px', height: '8px', background: 'var(--accent-cyan)', borderRadius: '50%', display: 'inline-block' }} className="animate-pulse"></span>
-          <span style={{ fontSize: '13px', color: 'var(--accent-cyan)', fontFamily: 'Space Grotesk', fontWeight: 600 }}>AI-Powered Cybersecurity Platform</span>
+          <span style={{ fontSize: '13px', color: 'var(--accent-cyan)', fontFamily: 'Space Grotesk', fontWeight: 600 }}>{t(badge)}</span>
         </div>
  
         <h1 style={{
@@ -120,16 +140,16 @@ function HomePage({ setActiveModule }) {
           fontSize: '18px', color: 'var(--text-secondary)',
           maxWidth: '600px', margin: '0 auto 40px', lineHeight: 1.7
         }}>
-          Protect yourself from AI misuse. Detect phishing, deepfakes and data breaches with real AI models and live databases.
+          {t(tagline)}
         </p>
  
         <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
-          {['🔒 Real AI Models', '⚡ Live Databases', '🌐 Multilingual', '📊 Threat Reports'].map(tag => (
-            <span key={tag} style={{
+          {['🔒 ', '⚡ ', '🌐 ', '📊 '].map((emoji, i) => (
+            <span key={tags[i]} style={{
               background: 'var(--bg-card)', border: '1px solid var(--border)',
               borderRadius: '20px', padding: '8px 16px',
               fontSize: '13px', color: 'var(--text-secondary)'
-            }}>{tag}</span>
+            }}>{emoji}{t(tags[i])}</span>
           ))}
         </div>
       </motion.div>
@@ -153,13 +173,13 @@ function HomePage({ setActiveModule }) {
             whileTap={{ scale: 0.98 }}
           >
             <div style={{ fontSize: '48px', marginBottom: '16px' }}>{mod.icon}</div>
-            <h3 style={{ fontSize: '20px', fontWeight: 700, marginBottom: '12px', color: mod.color }}>{mod.title}</h3>
-            <p style={{ fontSize: '14px', color: 'var(--text-secondary)', lineHeight: 1.6 }}>{mod.description}</p>
+            <h3 style={{ fontSize: '20px', fontWeight: 700, marginBottom: '12px', color: mod.color }}>{t(mod.title)}</h3>
+            <p style={{ fontSize: '14px', color: 'var(--text-secondary)', lineHeight: 1.6 }}>{t(mod.description)}</p>
             <div style={{
               marginTop: '24px', display: 'flex', alignItems: 'center',
               gap: '8px', color: mod.color, fontSize: '14px', fontWeight: 600
             }}>
-              <span>Launch Scanner</span>
+              <span>{t(launchLabel)}</span>
               <span>→</span>
             </div>
           </motion.div>
@@ -170,3 +190,4 @@ function HomePage({ setActiveModule }) {
 }
  
 export default App;
+ 
