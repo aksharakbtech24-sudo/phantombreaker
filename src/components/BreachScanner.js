@@ -50,7 +50,7 @@ function BreachScanner({ addToHistory }) {
             <h1 style={{ fontSize: '32px', fontWeight: 700 }}>Breach Scanner</h1>
           </div>
           <p style={{ color: 'var(--text-secondary)', fontSize: '16px' }}>
-            Check if your email was leaked in any data breach using the real HaveIBeenPwned database.
+           Check if your email was leaked in any data breach using the real LeakCheck database.
           </p>
         </div>
 
