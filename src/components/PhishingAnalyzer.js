@@ -5,6 +5,7 @@ import emailjs from '@emailjs/browser';
 import ThreatScore from './ThreatScore';
 import PDFReport from './PDFReport';
 import { useLanguage } from '../LanguageContext';
+import { useTranslated } from '../useTranslated';
  
 const API_URL = 'https://phantombreaker-backend-xleo.onrender.com';
 const EMAILJS_SERVICE_ID = 'service_lxa01q6';
@@ -24,8 +25,35 @@ function speakAlert(message) {
   }
 }
  
+// Every static English UI string on this page, translated together in one batch.
+const UI_STRINGS = {
+  title: 'Phishing Analyzer',
+  subtitle: 'Paste any suspicious email. AI will detect phishing tactics, AI-written content and give a threat score.',
+  pasteLabel: 'PASTE EMAIL TEXT',
+  pastePlaceholder: 'Paste the full email content here including subject, sender and body...',
+  emailLabel: '📧 YOUR EMAIL (for scan report — optional)',
+  emailPlaceholder: 'Enter your email to receive scan report...',
+  clear: 'Clear',
+  analyze: '🔍 Analyze Email',
+  analyzing: 'Analyzing...',
+  analyzingBody: 'AI is analyzing your email...',
+  charCount: 'characters',
+  emptyError: 'Please enter the email text to analyze.',
+  phishingDetected: '⚠️ PHISHING DETECTED',
+  emailSafe: '✅ EMAIL IS SAFE',
+  phishingBadge: '🚨 Phishing',
+  safeBadge: '✅ Safe',
+  aiWritten: '🤖 AI Written:',
+  voiceAlert: '🔊 Voice Alert Triggered — High Threat Detected!',
+  reportSentPrefix: '📧 Scan report sent to',
+  dangerousSentences: '🚨 Dangerous Sentences',
+  manipulationTactics: '🧠 Manipulation Tactics Used',
+};
+ 
 function PhishingAnalyzer({ addToHistory }) {
-  const { language } = useLanguage(); // currently selected site language, e.g. "Hindi"
+  const { language } = useLanguage(); // currently selected site language, e.g. "Telugu"
+  const { t } = useTranslated(Object.values(UI_STRINGS));
+ 
   const [emailText, setEmailText] = useState('');
   const [alertEmail, setAlertEmail] = useState('');
   const [result, setResult] = useState(null);
@@ -56,7 +84,7 @@ function PhishingAnalyzer({ addToHistory }) {
  
   const analyze = async () => {
     if (!emailText.trim() || emailText.length < 10) {
-      setError('Please enter the email text to analyze.');
+      setError(t(UI_STRINGS.emptyError));
       return;
     }
     setLoading(true);
@@ -95,10 +123,10 @@ function PhishingAnalyzer({ addToHistory }) {
         <div style={{ marginBottom: '32px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
             <span style={{ fontSize: '36px' }}>🎣</span>
-            <h1 style={{ fontSize: '32px', fontWeight: 700 }}>Phishing Analyzer</h1>
+            <h1 style={{ fontSize: '32px', fontWeight: 700 }}>{t(UI_STRINGS.title)}</h1>
           </div>
           <p style={{ color: 'var(--text-secondary)', fontSize: '16px' }}>
-            Paste any suspicious email. AI will detect phishing tactics, AI-written content and give a threat score.
+            {t(UI_STRINGS.subtitle)}
           </p>
         </div>
  
@@ -107,11 +135,11 @@ function PhishingAnalyzer({ addToHistory }) {
             display: 'block', marginBottom: '12px',
             fontSize: '14px', fontWeight: 600, color: 'var(--text-secondary)'
           }}>
-            PASTE EMAIL TEXT
+            {t(UI_STRINGS.pasteLabel)}
           </label>
           <textarea
             className="input-field"
-            placeholder="Paste the full email content here including subject, sender and body..."
+            placeholder={t(UI_STRINGS.pastePlaceholder)}
             value={emailText}
             onChange={e => setEmailText(e.target.value)}
             style={{ minHeight: '200px' }}
@@ -122,12 +150,12 @@ function PhishingAnalyzer({ addToHistory }) {
               display: 'block', marginBottom: '8px',
               fontSize: '14px', fontWeight: 600, color: 'var(--text-secondary)'
             }}>
-              📧 YOUR EMAIL (for scan report — optional)
+              {t(UI_STRINGS.emailLabel)}
             </label>
             <input
               type="email"
               className="input-field"
-              placeholder="Enter your email to receive scan report..."
+              placeholder={t(UI_STRINGS.emailPlaceholder)}
               value={alertEmail}
               onChange={e => setAlertEmail(e.target.value)}
               style={{ padding: '12px 16px', width: '100%', boxSizing: 'border-box' }}
@@ -139,7 +167,7 @@ function PhishingAnalyzer({ addToHistory }) {
             alignItems: 'center', marginTop: '16px'
           }}>
             <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
-              {emailText.length} characters
+              {emailText.length} {t(UI_STRINGS.charCount)}
             </span>
             <div style={{ display: 'flex', gap: '12px' }}>
               <button
@@ -147,14 +175,14 @@ function PhishingAnalyzer({ addToHistory }) {
                 onClick={() => { setEmailText(''); setAlertEmail(''); setResult(null); setError(''); setVoiceTriggered(false); setEmailSent(false); }}
                 style={{ background: 'var(--bg-hover)', color: 'var(--text-secondary)' }}
               >
-                Clear
+                {t(UI_STRINGS.clear)}
               </button>
               <button
                 className="btn-primary"
                 onClick={analyze}
                 disabled={loading}
               >
-                {loading ? 'Analyzing...' : '🔍 Analyze Email'}
+                {loading ? t(UI_STRINGS.analyzing) : t(UI_STRINGS.analyze)}
               </button>
             </div>
           </div>
@@ -176,7 +204,7 @@ function PhishingAnalyzer({ addToHistory }) {
         {loading && (
           <div style={{ textAlign: 'center', padding: '60px' }}>
             <div className="loading-spinner" style={{ margin: '0 auto 16px' }}></div>
-            <p style={{ color: 'var(--text-secondary)' }}>AI is analyzing your email...</p>
+            <p style={{ color: 'var(--text-secondary)' }}>{t(UI_STRINGS.analyzingBody)}</p>
           </div>
         )}
  
@@ -193,17 +221,17 @@ function PhishingAnalyzer({ addToHistory }) {
                   fontSize: '28px', fontWeight: 700, marginBottom: '8px',
                   color: result.is_phishing ? 'var(--danger)' : 'var(--success)'
                 }}>
-                  {result.is_phishing ? '⚠️ PHISHING DETECTED' : '✅ EMAIL IS SAFE'}
+                  {result.is_phishing ? t(UI_STRINGS.phishingDetected) : t(UI_STRINGS.emailSafe)}
                 </div>
                 <p style={{ color: 'var(--text-secondary)', marginBottom: '16px' }}>
                   {result.explanation}
                 </p>
                 <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
                   <span className={`badge ${result.is_phishing ? 'badge-danger' : 'badge-success'}`}>
-                    {result.is_phishing ? '🚨 Phishing' : '✅ Safe'}
+                    {result.is_phishing ? t(UI_STRINGS.phishingBadge) : t(UI_STRINGS.safeBadge)}
                   </span>
                   <span className="badge badge-warning">
-                    🤖 AI Written: {result.ai_written_score}%
+                    {t(UI_STRINGS.aiWritten)} {result.ai_written_score}%
                   </span>
                   <span className="badge" style={{ background: 'rgba(0,212,255,0.1)', color: 'var(--accent-cyan)', border: '1px solid rgba(0,212,255,0.3)' }}>
                     🌐 {result.language_detected}
@@ -215,7 +243,7 @@ function PhishingAnalyzer({ addToHistory }) {
                     background: 'rgba(255,45,120,0.1)', border: '1px solid rgba(255,45,120,0.3)',
                     borderRadius: '8px', fontSize: '13px', color: 'var(--danger)'
                   }}>
-                    🔊 Voice Alert Triggered — High Threat Detected!
+                    {t(UI_STRINGS.voiceAlert)}
                   </div>
                 )}
                 {emailSent && (
@@ -224,7 +252,7 @@ function PhishingAnalyzer({ addToHistory }) {
                     background: 'rgba(0,212,255,0.1)', border: '1px solid rgba(0,212,255,0.3)',
                     borderRadius: '8px', fontSize: '13px', color: 'var(--accent-cyan)'
                   }}>
-                    📧 Scan report sent to {alertEmail}!
+                    {t(UI_STRINGS.reportSentPrefix)} {alertEmail}!
                   </div>
                 )}
                 <div style={{ marginTop: '16px' }}>
@@ -236,7 +264,7 @@ function PhishingAnalyzer({ addToHistory }) {
             {result.dangerous_sentences?.length > 0 && (
               <div className="card">
                 <h3 style={{ marginBottom: '16px', color: 'var(--danger)' }}>
-                  🚨 Dangerous Sentences
+                  {t(UI_STRINGS.dangerousSentences)}
                 </h3>
                 {result.dangerous_sentences.map((sentence, i) => (
                   <div key={i} style={{
@@ -254,7 +282,7 @@ function PhishingAnalyzer({ addToHistory }) {
             {result.manipulation_tactics?.length > 0 && (
               <div className="card">
                 <h3 style={{ marginBottom: '16px', color: 'var(--warning)' }}>
-                  🧠 Manipulation Tactics Used
+                  {t(UI_STRINGS.manipulationTactics)}
                 </h3>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
                   {result.manipulation_tactics.map((tactic, i) => (
@@ -273,3 +301,4 @@ function PhishingAnalyzer({ addToHistory }) {
 }
  
 export default PhishingAnalyzer;
+ 
