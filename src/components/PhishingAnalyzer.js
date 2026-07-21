@@ -6,43 +6,25 @@ import ThreatScore from './ThreatScore';
 import PDFReport from './PDFReport';
 import { useLanguage } from '../LanguageContext';
 import { useTranslated } from '../useTranslated';
-import { speechLangCode } from '../speechLangCodes';
  
 const API_URL = 'https://phantombreaker-backend-xleo.onrender.com';
 const EMAILJS_SERVICE_ID = 'service_lxa01q6';
 const EMAILJS_TEMPLATE_ID = 'template_3ct82po';
 const EMAILJS_PUBLIC_KEY = 'xusdSXbfVMIB9_YE7';
  
-function speakAlert(message, langCode, fallbackMessage) {
-  if ('speechSynthesis' in window) {
-    window.speechSynthesis.cancel();
- 
-    const speak = () => {
-      const voices = window.speechSynthesis.getVoices();
-      // Check if any installed voice actually matches the target language
-      // (matching just the language prefix, e.g. "te" for "te-IN", since
-      // exact locale matches are rare — browsers often have "te" but not "te-IN").
-      const langPrefix = langCode.split('-')[0];
-      const hasMatchingVoice = voices.some(v => v.lang.toLowerCase().startsWith(langPrefix));
- 
-      const utterance = new SpeechSynthesisUtterance(
-        hasMatchingVoice ? message : (fallbackMessage || message)
-      );
-      utterance.lang = hasMatchingVoice ? langCode : 'en-IN';
-      utterance.rate = 0.9;
-      utterance.pitch = 1;
-      utterance.volume = 1;
+async function speakAlert(text, language) {
+  try {
+    const response = await axios.post(`${API_URL}/api/tts`, { text, language });
+    const { audio_base64 } = response.data;
+    const audio = new Audio(`data:audio/mp3;base64,${audio_base64}`);
+    audio.play();
+  } catch (err) {
+    console.error('Voice alert failed:', err);
+    // Last-resort fallback: browser's built-in speech, English only
+    if ('speechSynthesis' in window) {
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = 'en-IN';
       window.speechSynthesis.speak(utterance);
-    };
- 
-    // Voice list loads asynchronously in some browsers — if empty on first
-    // check, wait for it to populate before deciding on fallback.
-    if (window.speechSynthesis.getVoices().length === 0) {
-      window.speechSynthesis.onvoiceschanged = () => {
-        setTimeout(speak, 300);
-      };
-    } else {
-      setTimeout(speak, 500);
     }
   }
 }
@@ -124,13 +106,9 @@ function PhishingAnalyzer({ addToHistory }) {
       setResult(response.data);
       if (response.data.combined_threat_score >= 60) {
         setVoiceTriggered(true);
-        // Voice alert spoken in the selected site language if a matching voice
-        // exists on the device; otherwise falls back to English automatically
-        speakAlert(
-          t(UI_STRINGS.voiceAlertMessage),
-          speechLangCode(language),
-          UI_STRINGS.voiceAlertMessage // English fallback text
-        );
+        // Voice alert generated server-side via gTTS in the selected language —
+        // works on any device regardless of installed browser/OS voices
+        speakAlert(t(UI_STRINGS.voiceAlertMessage), language);
         await sendEmailAlert(response.data);
       }
       addToHistory({
