@@ -13,17 +13,37 @@ const EMAILJS_SERVICE_ID = 'service_lxa01q6';
 const EMAILJS_TEMPLATE_ID = 'template_3ct82po';
 const EMAILJS_PUBLIC_KEY = 'xusdSXbfVMIB9_YE7';
  
-function speakAlert(message, langCode) {
+function speakAlert(message, langCode, fallbackMessage) {
   if ('speechSynthesis' in window) {
     window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(message);
-    utterance.lang = langCode;
-    utterance.rate = 0.9;
-    utterance.pitch = 1;
-    utterance.volume = 1;
-    setTimeout(() => {
+ 
+    const speak = () => {
+      const voices = window.speechSynthesis.getVoices();
+      // Check if any installed voice actually matches the target language
+      // (matching just the language prefix, e.g. "te" for "te-IN", since
+      // exact locale matches are rare — browsers often have "te" but not "te-IN").
+      const langPrefix = langCode.split('-')[0];
+      const hasMatchingVoice = voices.some(v => v.lang.toLowerCase().startsWith(langPrefix));
+ 
+      const utterance = new SpeechSynthesisUtterance(
+        hasMatchingVoice ? message : (fallbackMessage || message)
+      );
+      utterance.lang = hasMatchingVoice ? langCode : 'en-IN';
+      utterance.rate = 0.9;
+      utterance.pitch = 1;
+      utterance.volume = 1;
       window.speechSynthesis.speak(utterance);
-    }, 500);
+    };
+ 
+    // Voice list loads asynchronously in some browsers — if empty on first
+    // check, wait for it to populate before deciding on fallback.
+    if (window.speechSynthesis.getVoices().length === 0) {
+      window.speechSynthesis.onvoiceschanged = () => {
+        setTimeout(speak, 300);
+      };
+    } else {
+      setTimeout(speak, 500);
+    }
   }
 }
  
@@ -104,8 +124,13 @@ function PhishingAnalyzer({ addToHistory }) {
       setResult(response.data);
       if (response.data.combined_threat_score >= 60) {
         setVoiceTriggered(true);
-        // Voice alert spoken in the selected site language, with the matching voice locale
-        speakAlert(t(UI_STRINGS.voiceAlertMessage), speechLangCode(language));
+        // Voice alert spoken in the selected site language if a matching voice
+        // exists on the device; otherwise falls back to English automatically
+        speakAlert(
+          t(UI_STRINGS.voiceAlertMessage),
+          speechLangCode(language),
+          UI_STRINGS.voiceAlertMessage // English fallback text
+        );
         await sendEmailAlert(response.data);
       }
       addToHistory({
@@ -305,4 +330,3 @@ function PhishingAnalyzer({ addToHistory }) {
 }
  
 export default PhishingAnalyzer;
- 
