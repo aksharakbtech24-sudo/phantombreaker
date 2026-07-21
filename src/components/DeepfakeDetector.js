@@ -4,16 +4,40 @@ import { useDropzone } from 'react-dropzone';
 import axios from 'axios';
 import ThreatScore from './ThreatScore';
 import PDFReport from './PDFReport';
-
+import { useLanguage } from '../LanguageContext';
+import { useTranslated } from '../useTranslated';
+ 
 const API_URL = 'https://phantombreaker-backend-xleo.onrender.com';
-
+ 
+const UI_STRINGS = {
+  title: 'Deepfake Detector',
+  subtitle: 'Upload any image. Real computer vision AI will analyze pixel patterns to detect if it was AI generated.',
+  dropActive: 'Drop image here',
+  dropInactive: 'Drag & drop image here',
+  dropHint: 'or click to browse — JPG, PNG, WEBP up to 10MB',
+  remove: 'Remove',
+  detect: '🔍 Detect Deepfake',
+  detecting: 'Analyzing...',
+  analyzingBody: 'AI is analyzing image pixels...',
+  emptyError: 'Please upload an image first.',
+  deepfakeDetected: '⚠️ DEEPFAKE DETECTED',
+  imageReal: '✅ IMAGE IS REAL',
+  fakeBadge: '🚨 Fake',
+  realBadge: '✅ Real',
+  confidence: 'Confidence:',
+  whatGaveAway: '🔍 What Gave It Away',
+};
+ 
 function DeepfakeDetector({ addToHistory }) {
+  const { language } = useLanguage();
+  const { t } = useTranslated(Object.values(UI_STRINGS));
+ 
   const [image, setImage] = useState(null);
   const [preview, setPreview] = useState(null);
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-
+ 
   const onDrop = useCallback((acceptedFiles) => {
     const file = acceptedFiles[0];
     if (file) {
@@ -23,26 +47,27 @@ function DeepfakeDetector({ addToHistory }) {
       setError('');
     }
   }, []);
-
+ 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     accept: { 'image/*': ['.jpeg', '.jpg', '.png', '.webp'] },
     maxSize: 10 * 1024 * 1024,
     multiple: false
   });
-
+ 
   const analyze = async () => {
     if (!image) {
-      setError('Please upload an image first.');
+      setError(t(UI_STRINGS.emptyError));
       return;
     }
     setLoading(true);
     setError('');
     setResult(null);
-
+ 
     try {
       const formData = new FormData();
       formData.append('image', image);
+      formData.append('response_language', language);
       const response = await axios.post(`${API_URL}/api/detect-deepfake`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
@@ -60,27 +85,27 @@ function DeepfakeDetector({ addToHistory }) {
       setLoading(false);
     }
   };
-
+ 
   const reset = () => {
     setImage(null);
     setPreview(null);
     setResult(null);
     setError('');
   };
-
+ 
   return (
     <div style={{ maxWidth: '900px', margin: '0 auto', padding: '40px 24px' }}>
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
         <div style={{ marginBottom: '32px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
             <span style={{ fontSize: '36px' }}>🤖</span>
-            <h1 style={{ fontSize: '32px', fontWeight: 700 }}>Deepfake Detector</h1>
+            <h1 style={{ fontSize: '32px', fontWeight: 700 }}>{t(UI_STRINGS.title)}</h1>
           </div>
           <p style={{ color: 'var(--text-secondary)', fontSize: '16px' }}>
-            Upload any image. Real computer vision AI will analyze pixel patterns to detect if it was AI generated.
+            {t(UI_STRINGS.subtitle)}
           </p>
         </div>
-
+ 
         <div className="card" style={{ marginBottom: '24px' }}>
           <div
             {...getRootProps()}
@@ -110,15 +135,15 @@ function DeepfakeDetector({ addToHistory }) {
               <div>
                 <div style={{ fontSize: '48px', marginBottom: '16px' }}>🖼️</div>
                 <p style={{ color: 'var(--text-primary)', fontWeight: 600, marginBottom: '8px' }}>
-                  {isDragActive ? 'Drop image here' : 'Drag & drop image here'}
+                  {isDragActive ? t(UI_STRINGS.dropActive) : t(UI_STRINGS.dropInactive)}
                 </p>
                 <p style={{ color: 'var(--text-muted)', fontSize: '14px' }}>
-                  or click to browse — JPG, PNG, WEBP up to 10MB
+                  {t(UI_STRINGS.dropHint)}
                 </p>
               </div>
             )}
           </div>
-
+ 
           {preview && (
             <div style={{ display: 'flex', gap: '12px', marginTop: '16px', justifyContent: 'flex-end' }}>
               <button
@@ -126,15 +151,15 @@ function DeepfakeDetector({ addToHistory }) {
                 onClick={reset}
                 style={{ background: 'var(--bg-hover)', color: 'var(--text-secondary)' }}
               >
-                Remove
+                {t(UI_STRINGS.remove)}
               </button>
               <button className="btn-primary" onClick={analyze} disabled={loading}>
-                {loading ? 'Analyzing...' : '🔍 Detect Deepfake'}
+                {loading ? t(UI_STRINGS.detecting) : t(UI_STRINGS.detect)}
               </button>
             </div>
           )}
         </div>
-
+ 
         {error && (
           <motion.div
             initial={{ opacity: 0 }} animate={{ opacity: 1 }}
@@ -147,14 +172,14 @@ function DeepfakeDetector({ addToHistory }) {
             ⚠️ {error}
           </motion.div>
         )}
-
+ 
         {loading && (
           <div style={{ textAlign: 'center', padding: '60px' }}>
             <div className="loading-spinner" style={{ margin: '0 auto 16px' }}></div>
-            <p style={{ color: 'var(--text-secondary)' }}>AI is analyzing image pixels...</p>
+            <p style={{ color: 'var(--text-secondary)' }}>{t(UI_STRINGS.analyzingBody)}</p>
           </div>
         )}
-
+ 
         {result && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -171,17 +196,17 @@ function DeepfakeDetector({ addToHistory }) {
                   fontSize: '28px', fontWeight: 700, marginBottom: '8px',
                   color: result.is_deepfake ? 'var(--danger)' : 'var(--success)'
                 }}>
-                  {result.is_deepfake ? '⚠️ DEEPFAKE DETECTED' : '✅ IMAGE IS REAL'}
+                  {result.is_deepfake ? t(UI_STRINGS.deepfakeDetected) : t(UI_STRINGS.imageReal)}
                 </div>
                 <p style={{ color: 'var(--text-secondary)', marginBottom: '16px', lineHeight: 1.6 }}>
                   {result.explanation}
                 </p>
                 <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
                   <span className={`badge ${result.is_deepfake ? 'badge-danger' : 'badge-success'}`}>
-                    {result.is_deepfake ? '🚨 Fake' : '✅ Real'}
+                    {result.is_deepfake ? t(UI_STRINGS.fakeBadge) : t(UI_STRINGS.realBadge)}
                   </span>
                   <span className="badge badge-warning">
-                    Confidence: {result.fake_score}%
+                    {t(UI_STRINGS.confidence)} {result.fake_score}%
                   </span>
                 </div>
                 <div style={{ marginTop: '16px' }}>
@@ -189,11 +214,11 @@ function DeepfakeDetector({ addToHistory }) {
                 </div>
               </div>
             </div>
-
+ 
             {result.indicators?.length > 0 && (
               <div className="card">
                 <h3 style={{ marginBottom: '16px', color: 'var(--warning)' }}>
-                  🔍 What Gave It Away
+                  {t(UI_STRINGS.whatGaveAway)}
                 </h3>
                 {result.indicators.map((indicator, i) => (
                   <div key={i} style={{
@@ -213,5 +238,6 @@ function DeepfakeDetector({ addToHistory }) {
     </div>
   );
 }
-
+ 
 export default DeepfakeDetector;
+ 

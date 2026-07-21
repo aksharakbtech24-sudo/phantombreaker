@@ -2,27 +2,62 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import axios from 'axios';
 import PDFReport from './PDFReport';
-
+import { useLanguage } from '../LanguageContext';
+import { useTranslated } from '../useTranslated';
+ 
 const API_URL = 'https://phantombreaker-backend-xleo.onrender.com';
-
+ 
+const UI_STRINGS = {
+  title: 'Breach Scanner',
+  subtitle: 'Check if your email was leaked in any data breach using the real LeakCheck database.',
+  enterEmail: 'ENTER EMAIL ADDRESS',
+  scanNow: '🔍 Scan Now',
+  scanning: 'Scanning...',
+  hashNotice: '🔒 Your email is hashed before checking — never stored or shared',
+  emptyError: 'Please enter a valid email address.',
+  checkingDb: 'Checking breach databases...',
+  foundBreachesPrefix: 'Found in',
+  foundBreachesSuffix: 'Data Breaches',
+  noBreaches: 'No Breaches Found!',
+  exposedPrefix: 'Your email',
+  exposedMiddle: 'was exposed in',
+  exposedSuffix: 'known data breaches.',
+  cleanPrefix: 'Great news!',
+  cleanSuffix: "hasn't appeared in any known data breaches.",
+  breachedSites: '🔓 Breached Sites',
+  breachedLabel: 'Breached:',
+  accountsSuffix: 'accounts',
+  whatToDoNow: '🛡️ What To Do Now',
+  rec1: 'Change your password immediately on all breached sites',
+  rec2: 'Enable two-factor authentication (2FA) everywhere',
+  rec3: 'Use a unique password for every website',
+  rec4: 'Consider using a password manager like Bitwarden',
+  rec5: 'Monitor your bank accounts for suspicious activity',
+  rec6: 'Check if your phone number was also leaked',
+  backendError: 'Backend not connected yet. Set up Flask backend to get real results.',
+};
+ 
 function BreachScanner({ addToHistory }) {
+  const { language } = useLanguage();
+  const { t } = useTranslated(Object.values(UI_STRINGS));
+ 
   const [email, setEmail] = useState('');
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-
+ 
   const scan = async () => {
     if (!email.trim() || !email.includes('@')) {
-      setError('Please enter a valid email address.');
+      setError(t(UI_STRINGS.emptyError));
       return;
     }
     setLoading(true);
     setError('');
     setResult(null);
-
+ 
     try {
       const response = await axios.get(`${API_URL}/api/check-breach`, {
-        params: { email }
+        params: { email, response_language: language }
       });
       setResult(response.data);
       addToHistory({
@@ -34,12 +69,17 @@ function BreachScanner({ addToHistory }) {
         icon: '🔓'
       });
     } catch (err) {
-      setError('Backend not connected yet. Set up Flask backend to get real results.');
+      setError(t(UI_STRINGS.backendError));
     } finally {
       setLoading(false);
     }
   };
-
+ 
+  const recommendations = [
+    UI_STRINGS.rec1, UI_STRINGS.rec2, UI_STRINGS.rec3,
+    UI_STRINGS.rec4, UI_STRINGS.rec5, UI_STRINGS.rec6
+  ];
+ 
   return (
     <div style={{ maxWidth: '900px', margin: '0 auto', padding: '40px 24px' }}>
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
@@ -47,20 +87,20 @@ function BreachScanner({ addToHistory }) {
         <div style={{ marginBottom: '32px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
             <span style={{ fontSize: '36px' }}>🔓</span>
-            <h1 style={{ fontSize: '32px', fontWeight: 700 }}>Breach Scanner</h1>
+            <h1 style={{ fontSize: '32px', fontWeight: 700 }}>{t(UI_STRINGS.title)}</h1>
           </div>
           <p style={{ color: 'var(--text-secondary)', fontSize: '16px' }}>
-           Check if your email was leaked in any data breach using the real LeakCheck database.
+           {t(UI_STRINGS.subtitle)}
           </p>
         </div>
-
+ 
         {/* Input */}
         <div className="card" style={{ marginBottom: '24px' }}>
           <label style={{
             display: 'block', marginBottom: '12px',
             fontSize: '14px', fontWeight: 600, color: 'var(--text-secondary)'
           }}>
-            ENTER EMAIL ADDRESS
+            {t(UI_STRINGS.enterEmail)}
           </label>
           <div style={{ display: 'flex', gap: '12px' }}>
             <input
@@ -77,14 +117,14 @@ function BreachScanner({ addToHistory }) {
               disabled={loading}
               style={{ whiteSpace: 'nowrap' }}
             >
-              {loading ? 'Scanning...' : '🔍 Scan Now'}
+              {loading ? t(UI_STRINGS.scanning) : t(UI_STRINGS.scanNow)}
             </button>
           </div>
           <p style={{ marginTop: '10px', fontSize: '12px', color: 'var(--text-muted)' }}>
-            🔒 Your email is hashed before checking — never stored or shared
+            {t(UI_STRINGS.hashNotice)}
           </p>
         </div>
-
+ 
         {/* Error */}
         {error && (
           <motion.div
@@ -98,15 +138,15 @@ function BreachScanner({ addToHistory }) {
             ⚠️ {error}
           </motion.div>
         )}
-
+ 
         {/* Loading */}
         {loading && (
           <div style={{ textAlign: 'center', padding: '60px' }}>
             <div className="loading-spinner" style={{ margin: '0 auto 16px' }}></div>
-            <p style={{ color: 'var(--text-secondary)' }}>Checking breach databases...</p>
+            <p style={{ color: 'var(--text-secondary)' }}>{t(UI_STRINGS.checkingDb)}</p>
           </div>
         )}
-
+ 
         {/* Results */}
         {result && (
           <motion.div
@@ -124,24 +164,24 @@ function BreachScanner({ addToHistory }) {
                 color: result.breach_count > 0 ? 'var(--danger)' : 'var(--success)'
               }}>
                 {result.breach_count > 0
-                  ? `Found in ${result.breach_count} Data Breaches`
-                  : 'No Breaches Found!'}
+                  ? `${t(UI_STRINGS.foundBreachesPrefix)} ${result.breach_count} ${t(UI_STRINGS.foundBreachesSuffix)}`
+                  : t(UI_STRINGS.noBreaches)}
               </div>
               <p style={{ color: 'var(--text-secondary)', fontSize: '16px' }}>
                 {result.breach_count > 0
-                  ? `Your email ${email} was exposed in ${result.breach_count} known data breaches.`
-                  : `Great news! ${email} hasn't appeared in any known data breaches.`}
+                  ? `${t(UI_STRINGS.exposedPrefix)} ${email} ${t(UI_STRINGS.exposedMiddle)} ${result.breach_count} ${t(UI_STRINGS.exposedSuffix)}`
+                  : `${t(UI_STRINGS.cleanPrefix)} ${email} ${t(UI_STRINGS.cleanSuffix)}`}
               </p>
             </div>
             <div style={{ marginTop: '16px', textAlign: 'center' }}>
               <PDFReport scanData={result} type="Breach Scan" />
             </div>
-
+ 
             {/* Breach list */}
             {result.breaches?.length > 0 && (
               <div className="card">
                 <h3 style={{ marginBottom: '20px', color: 'var(--danger)' }}>
-                  🔓 Breached Sites
+                  {t(UI_STRINGS.breachedSites)}
                 </h3>
                 {result.breaches.map((breach, i) => (
                   <motion.div
@@ -165,11 +205,11 @@ function BreachScanner({ addToHistory }) {
                           {breach.name}
                         </div>
                         <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
-                          Breached: {breach.breach_date}
+                          {t(UI_STRINGS.breachedLabel)} {breach.breach_date}
                         </div>
                       </div>
                       <span className="badge badge-danger">
-                        {breach.pwn_count?.toLocaleString()} accounts
+                        {breach.pwn_count?.toLocaleString()} {t(UI_STRINGS.accountsSuffix)}
                       </span>
                     </div>
                     {breach.data_classes?.length > 0 && (
@@ -190,28 +230,21 @@ function BreachScanner({ addToHistory }) {
                 ))}
               </div>
             )}
-
+ 
             {/* Recommendations */}
             {result.breach_count > 0 && (
               <div className="card">
                 <h3 style={{ marginBottom: '16px', color: 'var(--accent-cyan)' }}>
-                  🛡️ What To Do Now
+                  {t(UI_STRINGS.whatToDoNow)}
                 </h3>
-                {[
-                  'Change your password immediately on all breached sites',
-                  'Enable two-factor authentication (2FA) everywhere',
-                  'Use a unique password for every website',
-                  'Consider using a password manager like Bitwarden',
-                  'Monitor your bank accounts for suspicious activity',
-                  'Check if your phone number was also leaked'
-                ].map((rec, i) => (
+                {recommendations.map((rec, i) => (
                   <div key={i} style={{
                     display: 'flex', alignItems: 'flex-start', gap: '10px',
                     padding: '10px 0',
                     borderBottom: i < 5 ? '1px solid var(--border)' : 'none'
                   }}>
                     <span style={{ color: 'var(--accent-cyan)', fontWeight: 700 }}>→</span>
-                    <span style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>{rec}</span>
+                    <span style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>{t(rec)}</span>
                   </div>
                 ))}
               </div>
@@ -222,5 +255,5 @@ function BreachScanner({ addToHistory }) {
     </div>
   );
 }
-
+ 
 export default BreachScanner;
