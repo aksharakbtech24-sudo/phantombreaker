@@ -1,5 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
+import LanguageSelector from '../LanguageSelector';
  
 function Navbar({ activeModule, setActiveModule }) {
   const navItems = [
@@ -38,8 +39,7 @@ function Navbar({ activeModule, setActiveModule }) {
         }}>PhantomBreaker</span>
       </motion.div>
  
-      {/* Nav Links — scrolls horizontally within its own row on small screens
-          instead of pushing the whole navbar (and page) wider than the viewport */}
+      {/* Nav Links */}
       <div className="pb-nav-links" style={{ display: 'flex', gap: '4px', overflowX: 'auto' }}>
         {navItems.map(item => (
           <motion.button
@@ -66,23 +66,25 @@ function Navbar({ activeModule, setActiveModule }) {
         ))}
       </div>
  
-      {/* Status — hidden on small screens via CSS to make room for nav links */}
-      <div className="pb-status" style={{
-        display: 'flex', alignItems: 'center', gap: '8px',
-        background: 'rgba(0,255,136,0.1)', border: '1px solid rgba(0,255,136,0.3)',
-        borderRadius: '20px', padding: '6px 14px', flexShrink: 0
-      }}>
-        <span style={{
-          width: '8px', height: '8px', borderRadius: '50%',
-          background: 'var(--success)', display: 'inline-block'
-        }} className="animate-pulse"></span>
-        <span style={{ fontSize: '13px', color: 'var(--success)', fontFamily: 'Space Grotesk', fontWeight: 600 }}>
-          Systems Online
-        </span>
+      {/* Language Selector + Status */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>
+        <LanguageSelector />
+        <div className="pb-status" style={{
+          display: 'flex', alignItems: 'center', gap: '8px',
+          background: 'rgba(0,255,136,0.1)', border: '1px solid rgba(0,255,136,0.3)',
+          borderRadius: '20px', padding: '6px 14px'
+        }}>
+          <span style={{
+            width: '8px', height: '8px', borderRadius: '50%',
+            background: 'var(--success)', display: 'inline-block'
+          }} className="animate-pulse"></span>
+          <span style={{ fontSize: '13px', color: 'var(--success)', fontFamily: 'Space Grotesk', fontWeight: 600 }}>
+            Systems Online
+          </span>
+        </div>
       </div>
     </nav>
   );
 }
  
 export default Navbar;
- 

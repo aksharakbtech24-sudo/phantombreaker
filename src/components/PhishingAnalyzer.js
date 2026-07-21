@@ -1,13 +1,13 @@
-
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import axios from 'axios';
 import emailjs from '@emailjs/browser';
 import ThreatScore from './ThreatScore';
 import PDFReport from './PDFReport';
+import { useLanguage } from '../LanguageContext';
  
 const API_URL = 'https://phantombreaker-backend-xleo.onrender.com';
- const EMAILJS_SERVICE_ID = 'service_lxa01q6';
+const EMAILJS_SERVICE_ID = 'service_lxa01q6';
 const EMAILJS_TEMPLATE_ID = 'template_3ct82po';
 const EMAILJS_PUBLIC_KEY = 'xusdSXbfVMIB9_YE7';
  
@@ -25,6 +25,7 @@ function speakAlert(message) {
 }
  
 function PhishingAnalyzer({ addToHistory }) {
+  const { language } = useLanguage(); // currently selected site language, e.g. "Hindi"
   const [emailText, setEmailText] = useState('');
   const [alertEmail, setAlertEmail] = useState('');
   const [result, setResult] = useState(null);
@@ -66,7 +67,8 @@ function PhishingAnalyzer({ addToHistory }) {
  
     try {
       const response = await axios.post(`${API_URL}/api/analyze-phishing`, {
-        email_text: emailText
+        email_text: emailText,
+        response_language: language, // ensures result follows the selected site language
       });
       setResult(response.data);
       if (response.data.combined_threat_score >= 60) {
