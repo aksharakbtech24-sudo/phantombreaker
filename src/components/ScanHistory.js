@@ -4,8 +4,28 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer, LineChart, Line
 } from 'recharts';
+import { useTranslated } from '../useTranslated';
+
+const UI_STRINGS = {
+  title: 'Scan History',
+  subtitle: 'All your past scans, threat trends and security overview.',
+  noScansTitle: 'No scans yet',
+  noScansBody: 'Run a scan from any module and it will appear here.',
+  totalScans: 'Total Scans',
+  avgThreatScore: 'Avg Threat Score',
+  highThreats: 'High Threats',
+  threatScoreTrend: 'Threat Score Trend',
+  scansByType: 'Scans by Type',
+  recentScans: 'Recent Scans',
+  module: 'Module',
+  result: 'Result',
+  threatScore: 'Threat Score',
+  time: 'Time',
+};
 
 function ScanHistory({ history }) {
+  const { t } = useTranslated(Object.values(UI_STRINGS));
+
   const getScoreColor = (score) => {
     if (score >= 70) return 'var(--danger)';
     if (score >= 40) return 'var(--warning)';
@@ -37,19 +57,19 @@ function ScanHistory({ history }) {
         <div style={{ marginBottom: '32px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
             <span style={{ fontSize: '36px' }}>📊</span>
-            <h1 style={{ fontSize: '32px', fontWeight: 700 }}>Scan History</h1>
+            <h1 style={{ fontSize: '32px', fontWeight: 700 }}>{t(UI_STRINGS.title)}</h1>
           </div>
           <p style={{ color: 'var(--text-secondary)', fontSize: '16px' }}>
-            All your past scans, threat trends and security overview.
+            {t(UI_STRINGS.subtitle)}
           </p>
         </div>
 
         {history.length === 0 ? (
           <div className="card" style={{ textAlign: 'center', padding: '80px' }}>
             <div style={{ fontSize: '64px', marginBottom: '16px' }}>📭</div>
-            <h3 style={{ marginBottom: '8px', color: 'var(--text-secondary)' }}>No scans yet</h3>
+            <h3 style={{ marginBottom: '8px', color: 'var(--text-secondary)' }}>{t(UI_STRINGS.noScansTitle)}</h3>
             <p style={{ color: 'var(--text-muted)' }}>
-              Run a scan from any module and it will appear here.
+              {t(UI_STRINGS.noScansBody)}
             </p>
           </div>
         ) : (
@@ -57,9 +77,9 @@ function ScanHistory({ history }) {
             {/* Stats */}
             <div className="grid-3" style={{ marginBottom: '24px' }}>
               {[
-                { label: 'Total Scans', value: history.length, icon: '🔍', color: 'var(--accent-cyan)' },
-                { label: 'Avg Threat Score', value: avgScore, icon: '📈', color: avgScore >= 70 ? 'var(--danger)' : avgScore >= 40 ? 'var(--warning)' : 'var(--success)' },
-                { label: 'High Threats', value: highThreats, icon: '🚨', color: 'var(--danger)' }
+                { label: t(UI_STRINGS.totalScans), value: history.length, icon: '🔍', color: 'var(--accent-cyan)' },
+                { label: t(UI_STRINGS.avgThreatScore), value: avgScore, icon: '📈', color: avgScore >= 70 ? 'var(--danger)' : avgScore >= 40 ? 'var(--warning)' : 'var(--success)' },
+                { label: t(UI_STRINGS.highThreats), value: highThreats, icon: '🚨', color: 'var(--danger)' }
               ].map((stat, i) => (
                 <motion.div
                   key={i}
@@ -86,7 +106,7 @@ function ScanHistory({ history }) {
               <div className="grid-2" style={{ marginBottom: '24px' }}>
                 {/* Threat score over time */}
                 <div className="card">
-                  <h3 style={{ marginBottom: '20px' }}>Threat Score Trend</h3>
+                  <h3 style={{ marginBottom: '20px' }}>{t(UI_STRINGS.threatScoreTrend)}</h3>
                   <ResponsiveContainer width="100%" height={200}>
                     <LineChart data={chartData}>
                       <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
@@ -110,7 +130,7 @@ function ScanHistory({ history }) {
 
                 {/* Scans by type */}
                 <div className="card">
-                  <h3 style={{ marginBottom: '20px' }}>Scans by Type</h3>
+                  <h3 style={{ marginBottom: '20px' }}>{t(UI_STRINGS.scansByType)}</h3>
                   <ResponsiveContainer width="100%" height={200}>
                     <BarChart data={typeData}>
                       <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
@@ -132,18 +152,18 @@ function ScanHistory({ history }) {
 
             {/* History table */}
             <div className="card">
-              <h3 style={{ marginBottom: '20px' }}>Recent Scans</h3>
+              <h3 style={{ marginBottom: '20px' }}>{t(UI_STRINGS.recentScans)}</h3>
               <div style={{ overflowX: 'auto' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                   <thead>
                     <tr style={{ borderBottom: '1px solid var(--border)' }}>
-                      {['Module', 'Result', 'Threat Score', 'Time'].map(h => (
+                      {[UI_STRINGS.module, UI_STRINGS.result, UI_STRINGS.threatScore, UI_STRINGS.time].map(h => (
                         <th key={h} style={{
                           padding: '12px 16px', textAlign: 'left',
                           fontSize: '12px', color: 'var(--text-muted)',
                           fontWeight: 600, letterSpacing: '0.5px',
                           textTransform: 'uppercase'
-                        }}>{h}</th>
+                        }}>{t(h)}</th>
                       ))}
                     </tr>
                   </thead>
