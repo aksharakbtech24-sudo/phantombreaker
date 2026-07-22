@@ -1,4 +1,4 @@
-/ Pre-translated static UI strings — zero API dependency.
+// Pre-translated static UI strings — zero API dependency.
 // Used as an instant, offline-safe fallback so the site displays correctly
 // in these languages even if the live Groq translation API is rate-limited or down.
 //
