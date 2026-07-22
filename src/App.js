@@ -10,8 +10,30 @@ import { useTranslated } from './useTranslated';
 import './index.css';
  
 function App() {
-  const [activeModule, setActiveModule] = useState('home');
+  const [activeModule, setActiveModuleState] = useState('home');
   const [scanHistory, setScanHistory] = useState([]);
+
+  // Wrap setActiveModule so every navigation pushes a browser history entry
+  const setActiveModule = (module) => {
+    if (module !== activeModule) {
+      window.history.pushState({ module }, '', '#' + module);
+    }
+    setActiveModuleState(module);
+  };
+
+  // Listen for the mobile/browser back button and switch modules instead of exiting
+  React.useEffect(() => {
+    const handlePopState = (event) => {
+      const module = event.state?.module || 'home';
+      setActiveModuleState(module);
+    };
+    window.addEventListener('popstate', handlePopState);
+
+    // Set the very first history entry so there's something to "go back" to
+    window.history.replaceState({ module: 'home' }, '', '#home');
+
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
  
   const addToHistory = (scan) => {
     setScanHistory(prev => [{
