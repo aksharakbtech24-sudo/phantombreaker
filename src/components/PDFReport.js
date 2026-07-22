@@ -1,332 +1,111 @@
-import React, { useState } from 'react';
-import { motion } from 'framer-motion';
-import axios from 'axios';
-import emailjs from '@emailjs/browser';
-import ThreatScore from './ThreatScore';
-import PDFReport from './PDFReport';
-import { useLanguage } from '../LanguageContext';
-import { useTranslated } from '../useTranslated';
-import { speechLangCode } from '../speechLangCodes';
- 
-const API_URL = 'https://phantombreaker-backend-xleo.onrender.com';
-const EMAILJS_SERVICE_ID = 'service_lxa01q6';
-const EMAILJS_TEMPLATE_ID = 'template_3ct82po';
-const EMAILJS_PUBLIC_KEY = 'xusdSXbfVMIB9_YE7';
- 
-function speakAlert(message, langCode, fallbackMessage) {
-  if ('speechSynthesis' in window) {
-    window.speechSynthesis.cancel();
- 
-    const speak = () => {
-      const voices = window.speechSynthesis.getVoices();
-      // Check if any installed voice actually matches the target language
-      // (matching just the language prefix, e.g. "te" for "te-IN", since
-      // exact locale matches are rare — browsers often have "te" but not "te-IN").
-      const langPrefix = langCode.split('-')[0];
-      const hasMatchingVoice = voices.some(v => v.lang.toLowerCase().startsWith(langPrefix));
- 
-      const utterance = new SpeechSynthesisUtterance(
-        hasMatchingVoice ? message : (fallbackMessage || message)
-      );
-      utterance.lang = hasMatchingVoice ? langCode : 'en-IN';
-      utterance.rate = 0.9;
-      utterance.pitch = 1;
-      utterance.volume = 1;
-      window.speechSynthesis.speak(utterance);
-    };
- 
-    // Voice list loads asynchronously in some browsers — if empty on first
-    // check, wait for it to populate before deciding on fallback.
-    if (window.speechSynthesis.getVoices().length === 0) {
-      window.speechSynthesis.onvoiceschanged = () => {
-        setTimeout(speak, 300);
-      };
-    } else {
-      setTimeout(speak, 500);
+import React from 'react';
+import jsPDF from 'jspdf';
+
+function PDFReport({ scanData, type }) {
+  const generatePDF = () => {
+    if (!scanData) return;
+
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+    let y = 20;
+
+    // Header
+    doc.setFontSize(20);
+    doc.setFont(undefined, 'bold');
+    doc.text('PhantomBreaker', pageWidth / 2, y, { align: 'center' });
+    y += 8;
+
+    doc.setFontSize(12);
+    doc.setFont(undefined, 'normal');
+    doc.text(type || 'Scan Report', pageWidth / 2, y, { align: 'center' });
+    y += 6;
+
+    doc.setFontSize(9);
+    doc.setTextColor(120);
+    doc.text(new Date().toLocaleString(), pageWidth / 2, y, { align: 'center' });
+    doc.setTextColor(0);
+    y += 12;
+
+    doc.setLineWidth(0.5);
+    doc.line(15, y, pageWidth - 15, y);
+    y += 10;
+
+    // Threat score (works for phishing/deepfake style results)
+    if (scanData.combined_threat_score !== undefined || scanData.threat_score !== undefined) {
+      const score = scanData.combined_threat_score ?? scanData.threat_score;
+      doc.setFontSize(14);
+      doc.setFont(undefined, 'bold');
+      doc.text(`Threat Score: ${score}/100`, 15, y);
+      y += 8;
     }
-  }
-}
- 
-// Every static English UI string on this page, translated together in one batch.
-const UI_STRINGS = {
-  title: 'Phishing Analyzer',
-  subtitle: 'Paste any suspicious email. AI will detect phishing tactics, AI-written content and give a threat score.',
-  pasteLabel: 'PASTE EMAIL TEXT',
-  pastePlaceholder: 'Paste the full email content here including subject, sender and body...',
-  emailLabel: '📧 YOUR EMAIL (for scan report — optional)',
-  emailPlaceholder: 'Enter your email to receive scan report...',
-  clear: 'Clear',
-  analyze: '🔍 Analyze Email',
-  analyzing: 'Analyzing...',
-  analyzingBody: 'AI is analyzing your email...',
-  charCount: 'characters',
-  emptyError: 'Please enter the email text to analyze.',
-  phishingDetected: '⚠️ PHISHING DETECTED',
-  emailSafe: '✅ EMAIL IS SAFE',
-  phishingBadge: '🚨 Phishing',
-  safeBadge: '✅ Safe',
-  aiWritten: '🤖 AI Written:',
-  voiceAlert: '🔊 Voice Alert Triggered — High Threat Detected!',
-  reportSentPrefix: '📧 Scan report sent to',
-  dangerousSentences: '🚨 Dangerous Sentences',
-  manipulationTactics: '🧠 Manipulation Tactics Used',
-  voiceAlertMessage: 'Warning! High threat detected. This email is likely a phishing attack. Do not click any links.',
-};
- 
-function PhishingAnalyzer({ addToHistory }) {
-  const { language } = useLanguage(); // currently selected site language, e.g. "Telugu"
-  const { t } = useTranslated(Object.values(UI_STRINGS));
- 
-  const [emailText, setEmailText] = useState('');
-  const [alertEmail, setAlertEmail] = useState('');
-  const [result, setResult] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [voiceTriggered, setVoiceTriggered] = useState(false);
-  const [emailSent, setEmailSent] = useState(false);
- 
-  const sendEmailAlert = async (data) => {
-    if (!alertEmail || !alertEmail.includes('@')) return;
-    try {
-      await emailjs.send(
-        EMAILJS_SERVICE_ID,
-        EMAILJS_TEMPLATE_ID,
-        {
-          to_email: alertEmail,
-          name: 'PhantomBreaker User',
-          time: new Date().toLocaleString(),
-          message: `Your PhantomBreaker scan is complete.\n\nThreat Score: ${data.combined_threat_score}/100\nResult: ${data.is_phishing ? 'Phishing Detected' : 'Safe'}\nLanguage: ${data.language_detected}\nTactics Found: ${data.manipulation_tactics?.join(', ') || 'None'}\n\nView full details in your PhantomBreaker dashboard.\n\n— PhantomBreaker Security Platform\nphantombreaker.vercel.app`,
-        },
-        EMAILJS_PUBLIC_KEY
-      );
-      setEmailSent(true);
-    } catch (err) {
-      console.error('Email failed:', err);
+
+    if (scanData.is_phishing !== undefined) {
+      doc.setFontSize(12);
+      doc.setFont(undefined, 'normal');
+      doc.text(`Result: ${scanData.is_phishing ? 'Phishing Detected' : 'Safe'}`, 15, y);
+      y += 8;
     }
-  };
- 
-  const analyze = async () => {
-    if (!emailText.trim() || emailText.length < 10) {
-      setError(t(UI_STRINGS.emptyError));
-      return;
+
+    if (scanData.language_detected) {
+      doc.text(`Language: ${scanData.language_detected}`, 15, y);
+      y += 8;
     }
-    setLoading(true);
-    setError('');
-    setResult(null);
-    setVoiceTriggered(false);
-    setEmailSent(false);
- 
-    try {
-      const response = await axios.post(`${API_URL}/api/analyze-phishing`, {
-        email_text: emailText,
-        response_language: language, // ensures result follows the selected site language
+
+    // Explanation
+    if (scanData.explanation) {
+      y += 4;
+      doc.setFont(undefined, 'bold');
+      doc.text('Explanation:', 15, y);
+      y += 6;
+      doc.setFont(undefined, 'normal');
+      const lines = doc.splitTextToSize(scanData.explanation, pageWidth - 30);
+      doc.text(lines, 15, y);
+      y += lines.length * 6 + 4;
+    }
+
+    // Dangerous sentences
+    if (scanData.dangerous_sentences?.length > 0) {
+      doc.setFont(undefined, 'bold');
+      doc.text('Dangerous Sentences:', 15, y);
+      y += 6;
+      doc.setFont(undefined, 'normal');
+      scanData.dangerous_sentences.forEach(sentence => {
+        const lines = doc.splitTextToSize(`- ${sentence}`, pageWidth - 30);
+        if (y + lines.length * 6 > 280) { doc.addPage(); y = 20; }
+        doc.text(lines, 15, y);
+        y += lines.length * 6 + 2;
       });
-      setResult(response.data);
-      if (response.data.combined_threat_score >= 60) {
-        setVoiceTriggered(true);
-        // Voice alert spoken in the selected site language if a matching voice
-        // exists on the device; otherwise falls back to English automatically
-        speakAlert(
-          t(UI_STRINGS.voiceAlertMessage),
-          speechLangCode(language),
-          UI_STRINGS.voiceAlertMessage // English fallback text
-        );
-        await sendEmailAlert(response.data);
-      }
-      addToHistory({
-        type: 'Phishing Analysis',
-        score: response.data.combined_threat_score,
-        summary: response.data.is_phishing ? 'Phishing Detected' : 'Clean Email',
-        icon: '🎣'
-      });
-    } catch (err) {
-      setError(err.response?.data?.error || err.message || 'Connection failed: ' + err.toString());
-    } finally {
-      setLoading(false);
+      y += 4;
     }
+
+    // Manipulation tactics
+    if (scanData.manipulation_tactics?.length > 0) {
+      if (y > 260) { doc.addPage(); y = 20; }
+      doc.setFont(undefined, 'bold');
+      doc.text('Manipulation Tactics:', 15, y);
+      y += 6;
+      doc.setFont(undefined, 'normal');
+      doc.text(scanData.manipulation_tactics.join(', '), 15, y);
+      y += 10;
+    }
+
+    // Footer
+    doc.setFontSize(8);
+    doc.setTextColor(150);
+    doc.text('Generated by PhantomBreaker Security Platform', pageWidth / 2, 290, { align: 'center' });
+
+    doc.save(`phantombreaker-${(type || 'report').toLowerCase().replace(/\s+/g, '-')}.pdf`);
   };
- 
+
   return (
-    <div style={{ maxWidth: '900px', margin: '0 auto', padding: '40px 24px' }}>
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-        <div style={{ marginBottom: '32px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
-            <span style={{ fontSize: '36px' }}>🎣</span>
-            <h1 style={{ fontSize: '32px', fontWeight: 700 }}>{t(UI_STRINGS.title)}</h1>
-          </div>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '16px' }}>
-            {t(UI_STRINGS.subtitle)}
-          </p>
-        </div>
- 
-        <div className="card" style={{ marginBottom: '24px' }}>
-          <label style={{
-            display: 'block', marginBottom: '12px',
-            fontSize: '14px', fontWeight: 600, color: 'var(--text-secondary)'
-          }}>
-            {t(UI_STRINGS.pasteLabel)}
-          </label>
-          <textarea
-            className="input-field"
-            placeholder={t(UI_STRINGS.pastePlaceholder)}
-            value={emailText}
-            onChange={e => setEmailText(e.target.value)}
-            style={{ minHeight: '200px' }}
-          />
- 
-          <div style={{ marginTop: '16px', marginBottom: '8px' }}>
-            <label style={{
-              display: 'block', marginBottom: '8px',
-              fontSize: '14px', fontWeight: 600, color: 'var(--text-secondary)'
-            }}>
-              {t(UI_STRINGS.emailLabel)}
-            </label>
-            <input
-              type="email"
-              className="input-field"
-              placeholder={t(UI_STRINGS.emailPlaceholder)}
-              value={alertEmail}
-              onChange={e => setAlertEmail(e.target.value)}
-              style={{ padding: '12px 16px', width: '100%', boxSizing: 'border-box' }}
-            />
-          </div>
- 
-          <div style={{
-            display: 'flex', justifyContent: 'space-between',
-            alignItems: 'center', marginTop: '16px'
-          }}>
-            <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
-              {emailText.length} {t(UI_STRINGS.charCount)}
-            </span>
-            <div style={{ display: 'flex', gap: '12px' }}>
-              <button
-                className="btn-primary"
-                onClick={() => { setEmailText(''); setAlertEmail(''); setResult(null); setError(''); setVoiceTriggered(false); setEmailSent(false); }}
-                style={{ background: 'var(--bg-hover)', color: 'var(--text-secondary)' }}
-              >
-                {t(UI_STRINGS.clear)}
-              </button>
-              <button
-                className="btn-primary"
-                onClick={analyze}
-                disabled={loading}
-              >
-                {loading ? t(UI_STRINGS.analyzing) : t(UI_STRINGS.analyze)}
-              </button>
-            </div>
-          </div>
-        </div>
- 
-        {error && (
-          <motion.div
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-            style={{
-              background: 'rgba(255,45,120,0.1)', border: '1px solid rgba(255,45,120,0.3)',
-              borderRadius: '12px', padding: '16px', marginBottom: '24px',
-              color: 'var(--danger)', fontSize: '14px'
-            }}
-          >
-            ⚠️ {error}
-          </motion.div>
-        )}
- 
-        {loading && (
-          <div style={{ textAlign: 'center', padding: '60px' }}>
-            <div className="loading-spinner" style={{ margin: '0 auto 16px' }}></div>
-            <p style={{ color: 'var(--text-secondary)' }}>{t(UI_STRINGS.analyzingBody)}</p>
-          </div>
-        )}
- 
-        {result && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}
-          >
-            <div className="card" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-around', flexWrap: 'wrap', gap: '24px' }}>
-              <ThreatScore score={result.combined_threat_score} />
-              <div style={{ flex: 1, minWidth: '200px' }}>
-                <div style={{
-                  fontSize: '28px', fontWeight: 700, marginBottom: '8px',
-                  color: result.is_phishing ? 'var(--danger)' : 'var(--success)'
-                }}>
-                  {result.is_phishing ? t(UI_STRINGS.phishingDetected) : t(UI_STRINGS.emailSafe)}
-                </div>
-                <p style={{ color: 'var(--text-secondary)', marginBottom: '16px' }}>
-                  {result.explanation}
-                </p>
-                <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-                  <span className={`badge ${result.is_phishing ? 'badge-danger' : 'badge-success'}`}>
-                    {result.is_phishing ? t(UI_STRINGS.phishingBadge) : t(UI_STRINGS.safeBadge)}
-                  </span>
-                  <span className="badge badge-warning">
-                    {t(UI_STRINGS.aiWritten)} {result.ai_written_score}%
-                  </span>
-                  <span className="badge" style={{ background: 'rgba(0,212,255,0.1)', color: 'var(--accent-cyan)', border: '1px solid rgba(0,212,255,0.3)' }}>
-                    🌐 {result.language_detected}
-                  </span>
-                </div>
-                {voiceTriggered && (
-                  <div style={{
-                    marginTop: '12px', padding: '10px 16px',
-                    background: 'rgba(255,45,120,0.1)', border: '1px solid rgba(255,45,120,0.3)',
-                    borderRadius: '8px', fontSize: '13px', color: 'var(--danger)'
-                  }}>
-                    {t(UI_STRINGS.voiceAlert)}
-                  </div>
-                )}
-                {emailSent && (
-                  <div style={{
-                    marginTop: '8px', padding: '10px 16px',
-                    background: 'rgba(0,212,255,0.1)', border: '1px solid rgba(0,212,255,0.3)',
-                    borderRadius: '8px', fontSize: '13px', color: 'var(--accent-cyan)'
-                  }}>
-                    {t(UI_STRINGS.reportSentPrefix)} {alertEmail}!
-                  </div>
-                )}
-                <div style={{ marginTop: '16px' }}>
-                  <PDFReport scanData={result} type="Phishing Analysis" />
-                </div>
-              </div>
-            </div>
- 
-            {result.dangerous_sentences?.length > 0 && (
-              <div className="card">
-                <h3 style={{ marginBottom: '16px', color: 'var(--danger)' }}>
-                  {t(UI_STRINGS.dangerousSentences)}
-                </h3>
-                {result.dangerous_sentences.map((sentence, i) => (
-                  <div key={i} style={{
-                    background: 'rgba(255,45,120,0.08)',
-                    border: '1px solid rgba(255,45,120,0.2)',
-                    borderRadius: '8px', padding: '12px 16px', marginBottom: '8px',
-                    fontSize: '14px', color: 'var(--text-primary)', lineHeight: 1.6
-                  }}>
-                    ⚡ {sentence}
-                  </div>
-                ))}
-              </div>
-            )}
- 
-            {result.manipulation_tactics?.length > 0 && (
-              <div className="card">
-                <h3 style={{ marginBottom: '16px', color: 'var(--warning)' }}>
-                  {t(UI_STRINGS.manipulationTactics)}
-                </h3>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
-                  {result.manipulation_tactics.map((tactic, i) => (
-                    <span key={i} className="badge badge-warning">
-                      {tactic}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-          </motion.div>
-        )}
-      </motion.div>
-    </div>
+    <button
+      className="btn-primary"
+      onClick={generatePDF}
+      style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
+    >
+      📄 Download PDF Report
+    </button>
   );
 }
- 
-export default PhishingAnalyzer;
+
+export default PDFReport;
