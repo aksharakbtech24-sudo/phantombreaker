@@ -67,17 +67,25 @@ function PhishingAnalyzer({ addToHistory }) {
   const [voiceTriggered, setVoiceTriggered] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
  
+  const getSecurityGrade = (score) => {
+    if (score <= 15) return { grade: 'A+', label: 'SECURE', color: 'var(--success)' };
+    if (score <= 35) return { grade: 'B', label: 'LOW RISK', color: 'var(--accent-cyan)' };
+    if (score <= 65) return { grade: 'C', label: 'MODERATE RISK', color: 'var(--warning)' };
+    return { grade: 'F', label: 'CRITICAL THREAT', color: 'var(--danger)' };
+  };
+
   const sendEmailAlert = async (data) => {
     if (!alertEmail || !alertEmail.includes('@')) return;
+    const gradeObj = getSecurityGrade(data.combined_threat_score);
     try {
       await emailjs.send(
         EMAILJS_SERVICE_ID,
         EMAILJS_TEMPLATE_ID,
         {
           to_email: alertEmail,
-          name: 'PhantomBreaker User',
+          name: 'PhantomBreaker Security',
           time: new Date().toLocaleString(),
-          message: `Your PhantomBreaker scan is complete.\n\nThreat Score: ${data.combined_threat_score}/100\nResult: ${data.is_phishing ? 'Phishing Detected' : 'Safe'}\nLanguage: ${data.language_detected}\nTactics Found: ${data.manipulation_tactics?.join(', ') || 'None'}\n\nView full details in your PhantomBreaker dashboard.\n\n— PhantomBreaker Security Platform\nphantombreaker.vercel.app`,
+          message: `PhantomBreaker Security Audit Summary\n\nSecurity Posture Grade: ${gradeObj.grade} (${gradeObj.label})\nThreat Score: ${data.combined_threat_score}/100\nVerdict: ${data.is_phishing ? 'Phishing Detected' : 'Email Verified Safe'}\nLanguage Detected: ${data.language_detected}\nTactics Identified: ${data.manipulation_tactics?.join(', ') || 'None'}\n\nView full details on your dashboard: https://phantombreaker.vercel.app\n\n— PhantomBreaker Cybersecurity Platform`,
         },
         EMAILJS_PUBLIC_KEY
       );
@@ -86,6 +94,7 @@ function PhishingAnalyzer({ addToHistory }) {
       console.error('Email failed:', err);
     }
   };
+
  
   const analyze = async () => {
     if (!emailText.trim() || emailText.length < 10) {
@@ -233,9 +242,12 @@ function PhishingAnalyzer({ addToHistory }) {
                 <p style={{ color: 'var(--text-secondary)', marginBottom: '16px' }}>
                   {result.explanation}
                 </p>
-                <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'center' }}>
                   <span className={`badge ${result.is_phishing ? 'badge-danger' : 'badge-success'}`}>
                     {result.is_phishing ? t(UI_STRINGS.phishingBadge) : t(UI_STRINGS.safeBadge)}
+                  </span>
+                  <span className="badge" style={{ background: 'rgba(255,187,0,0.15)', color: getSecurityGrade(result.combined_threat_score).color, border: `1px solid ${getSecurityGrade(result.combined_threat_score).color}`, fontWeight: 700 }}>
+                    Grade {getSecurityGrade(result.combined_threat_score).grade}
                   </span>
                   <span className="badge badge-warning">
                     {t(UI_STRINGS.aiWritten)} {result.ai_written_score}%
@@ -244,6 +256,7 @@ function PhishingAnalyzer({ addToHistory }) {
                     🌐 {result.language_detected}
                   </span>
                 </div>
+
                 {voiceTriggered && (
                   <div style={{
                     marginTop: '12px', padding: '10px 16px',

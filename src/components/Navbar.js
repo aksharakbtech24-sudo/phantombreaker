@@ -8,8 +8,10 @@ function Navbar({ activeModule, setActiveModule }) {
     { id: 'phishing', label: 'Phishing' },
     { id: 'deepfake', label: 'Deepfake' },
     { id: 'breach', label: 'Breach' },
+    { id: 'combined', label: 'Combined Audit' },
     { id: 'history', label: 'History' },
   ];
+
  
   return (
     <nav className="pb-navbar" style={{

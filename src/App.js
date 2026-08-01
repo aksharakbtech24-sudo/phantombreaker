@@ -4,6 +4,7 @@ import Navbar from './components/Navbar';
 import PhishingAnalyzer from './components/PhishingAnalyzer';
 import DeepfakeDetector from './components/DeepfakeDetector';
 import BreachScanner from './components/BreachScanner';
+import CombinedReport from './components/CombinedReport';
 import ScanHistory from './components/ScanHistory';
 import { LanguageProvider } from './LanguageContext';
 import { useTranslated } from './useTranslated';
@@ -51,6 +52,8 @@ function App() {
         return <DeepfakeDetector addToHistory={addToHistory} />;
       case 'breach':
         return <BreachScanner addToHistory={addToHistory} />;
+      case 'combined':
+        return <CombinedReport onScanComplete={addToHistory} />;
       case 'history':
         return <ScanHistory history={scanHistory} />;
       default:
@@ -104,12 +107,22 @@ function HomePage({ setActiveModule }) {
       id: 'breach',
       icon: '🔓',
       title: 'Breach Scanner',
-    description: 'Check if your email was leaked in any data breach using the real LeakCheck database with millions of records.',
+      description: 'Check if your email was leaked in any data breach using the real LeakCheck database with millions of records.',
       color: 'var(--accent-pink)',
       gradient: 'linear-gradient(135deg, rgba(255,45,120,0.1), rgba(255,107,53,0.1))',
       border: 'rgba(255,45,120,0.3)'
+    },
+    {
+      id: 'combined',
+      icon: '🛡️',
+      title: 'Combined Threat Report',
+      description: 'Run a 3-in-1 master security audit unifying Phishing, Deepfake, and Breach scores into a Security Posture Index.',
+      color: 'var(--success)',
+      gradient: 'linear-gradient(135deg, rgba(0,255,136,0.1), rgba(0,212,255,0.1))',
+      border: 'rgba(0,255,136,0.3)'
     }
   ];
+
  
   // Every English string shown on this page — the hook translates all of
   // these together in one batch call whenever the language changes.
