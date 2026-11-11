@@ -201,14 +201,27 @@ function DeepfakeDetector({ addToHistory }) {
                 <p style={{ color: 'var(--text-secondary)', marginBottom: '16px', lineHeight: 1.6 }}>
                   {result.explanation}
                 </p>
-                <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'center' }}>
                   <span className={`badge ${result.is_deepfake ? 'badge-danger' : 'badge-success'}`}>
                     {result.is_deepfake ? t(UI_STRINGS.fakeBadge) : t(UI_STRINGS.realBadge)}
                   </span>
                   <span className="badge badge-warning">
-                    {t(UI_STRINGS.confidence)} {result.fake_score}%
+                    {t(UI_STRINGS.confidence)} {result.is_deepfake ? result.fake_score : (result.real_score || (100 - result.fake_score).toFixed(1))}%
                   </span>
                 </div>
+                {result.forensic_metrics && (
+                  <div style={{ display: 'flex', gap: '8px', marginTop: '12px', flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: '12px', background: 'rgba(0,212,255,0.1)', color: 'var(--accent-cyan)', padding: '4px 10px', borderRadius: '6px', border: '1px solid rgba(0,212,255,0.2)' }}>
+                      🔬 ELA Index: {result.forensic_metrics.ela_mean}
+                    </span>
+                    <span style={{ fontSize: '12px', background: 'rgba(0,212,255,0.1)', color: 'var(--accent-cyan)', padding: '4px 10px', borderRadius: '6px', border: '1px solid rgba(0,212,255,0.2)' }}>
+                      📊 Dataset: {result.forensic_metrics.benchmark_dataset}
+                    </span>
+                    <span style={{ fontSize: '12px', background: 'rgba(0,212,255,0.1)', color: 'var(--accent-cyan)', padding: '4px 10px', borderRadius: '6px', border: '1px solid rgba(0,212,255,0.2)' }}>
+                      📐 Latent Grid: {result.forensic_metrics.vae_grid_match ? 'Matched (AI Diffusion)' : 'Natural Camera'}
+                    </span>
+                  </div>
+                )}
                 <div style={{ marginTop: '16px' }}>
                   <PDFReport scanData={result} type="Deepfake Detection" />
                 </div>
